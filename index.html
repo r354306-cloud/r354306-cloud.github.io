@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CopepodForSale - Daily Operations</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#F7F9FB;min-height:100vh}
+input[type=checkbox]{accent-color:#27AE60;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback} = React;
+
+const SECTIONS = [
+  {
+    title: "\u{1F990} SALTWATER COPEPOD CULTURES (Tig / Tisbe / Apo)",
+    color: "#1B4F72",
+    tasks: [
+      { freq: "DAILY", task: "Feed all SW copepod cultures \u2014 Tetraselmis phyto (AM)", notes: "Pour live Tetra phyto into each culture container until water turns a LIGHT GREEN TINT \u2014 you should be able to see through it but it should NOT be crystal clear. START SMALL and add more if needed. NEW/THIN CULTURE: less phyto needed, maybe a few glugs. DENSE BOOMING CULTURE: needs much more. If water is still green from yesterday = skip or add less. If water is totally clear = they ate everything, feed now.", freqColor: "#E8F8F5" },
+      { freq: "DAILY", task: "Second feeding \u2014 Tetraselmis + Nannochloropsis mix (PM)", notes: "Check water color first. STILL GREEN from AM feed = do NOT add more, skip PM feed. CLEAR = pour in more live Tetra + a splash of live Nanno until light green tint returns. Nanno has tiny cells (2-4 \u00B5m) that baby copepods need \u2014 Tetra cells are too big for them to eat. NEVER make water dark green \u2014 that means overfeeding.", freqColor: "#E8F8F5" },
+      { freq: "DAILY", task: "Visual check all copepod cultures \u2014 density, deaths, water clarity", notes: "Look for nauplii (healthy). Milky/white = bacterial bloom. Deep green = too much phyto.", freqColor: "#E8F8F5" },
+      { freq: "DAILY", task: "Check aeration on all culture containers", notes: "Tig: 2-3 bps. Tisbe: 1-2 bps (most sensitive). Apo: 2-3 bps. Adjust gang valve.", freqColor: "#E8F8F5" },
+      { freq: "EVERY 2-3 DAYS", task: "Spot-clean culture container bottoms \u2014 remove detritus & dead pods", notes: "Turkey baster or spigot drain. Detritus = ammonia spikes.", freqColor: "#FEF9E7" },
+      { freq: "WEEKLY", task: "25% water change on all copepod cultures", notes: "Aged, dechlorinated SW at same salinity. Siphon from bottom.", freqColor: "#FDEBD0" },
+      { freq: "EVERY 2 WEEKS", task: "Assess cultures \u2014 decide which to restart vs continue", notes: "Cultures decline after 4-6 weeks. Dropping population = restart.", freqColor: "#FADBD8" },
+      { freq: "EVERY 2 WEEKS", task: "Replace dead/declining cultures \u2014 clean & restart", notes: "Scrub old culture container (NO soap). Fresh SW, inoculate from healthy culture.", freqColor: "#FADBD8" },
+      { freq: "EVERY 2 WEEKS", task: "Check ALL airline tubing, gang valves, air pump output", notes: "Every line for kinks/clogs. Replace worn tubing.", freqColor: "#FADBD8" },
+    ]
+  },
+  {
+    title: "\u{1F4A7} FRESHWATER CULTURES (Daphnia magna)",
+    color: "#1A5276",
+    tasks: [
+      { freq: "DAILY", task: "Feed Daphnia magna \u2014 dose live Chlorella", notes: "Light green tint. Start small, booming culture needs more. Dose 2x small > 1x large.", freqColor: "#E8F8F5" },
+      { freq: "DAILY", task: "Visual check Daphnia \u2014 density, juveniles, deaths", notes: "Ephippia (dark saddle eggs) = stress. Lots of juveniles = healthy.", freqColor: "#E8F8F5" },
+      { freq: "WEEKLY", task: "Check Daphnia aeration \u2014 absolute minimum", notes: "1 bubble every 1-2 sec MAX. Too much air = #1 killer.", freqColor: "#FDEBD0" },
+      { freq: "WEEKLY", task: "Check Daphnia temp \u2014 68-78\u00B0F", notes: "Above 80\u00B0F = danger. No heater unless room < 65\u00B0F.", freqColor: "#FDEBD0" },
+      { freq: "EVERY 2-3 DAYS", task: "Spot-clean Daphnia tank bottom", notes: "Turkey baster. Light biofilm on glass OK (daphnia graze it).", freqColor: "#FEF9E7" },
+      { freq: "WEEKLY", task: "25% water change \u2014 Daphnia tank", notes: "Siphon from bottom. Aged FW at same temp. Test GH/KH if issues.", freqColor: "#FDEBD0" },
+      { freq: "AS NEEDED", task: "Harvest Daphnia \u2014 max 1/3 colony", notes: "100-200 \u00B5m net. Leave juveniles + egg females. Feed more after harvest.", freqColor: "#E8F8F5" },
+    ]
+  },
+  {
+    title: "\u{1F33F} CHAETOMORPHA GROW-OUT TANKS",
+    color: "#196F3D",
+    tasks: [
+      { freq: "DAILY", task: "Dose Chaeto Grow Formula (Bottle A + Bottle B)", notes: "10 mL each per 25 gal. If chaeto yellowing, double dose 2-3 days.", freqColor: "#E8F8F5" },
+      { freq: "DAILY", task: "Check powerhead flow \u2014 chaeto gently tumbling", notes: "10-20x volume/hr. All surfaces need light exposure.", freqColor: "#E8F8F5" },
+      { freq: "WEEKLY", task: "Check salinity \u2014 all chaeto tanks", notes: "Target SG 1.020-1.023. Refractometer.", freqColor: "#FDEBD0" },
+      { freq: "WEEKLY", task: "Check chaeto temp \u2014 78-80\u00B0F", notes: "Watch for heat from lights.", freqColor: "#FDEBD0" },
+      { freq: "EVERY 2 WEEKS", task: "25% water change \u2014 chaeto tanks", notes: "Fresh SW at same salinity. Replenishes trace elements.", freqColor: "#FADBD8" },
+      { freq: "MONTHLY", task: "Confirm chaeto lights \u2014 12-16 hr photoperiod on timer", notes: "100W+ LED, 5000-6500K, 250+ PAR.", freqColor: "#F5EEF8" },
+      { freq: "MONTHLY", task: "Deep clean powerhead intakes", notes: "Vinegar soak + scrub. Reduced flow = reduced growth.", freqColor: "#F5EEF8" },
+    ]
+  },
+  {
+    title: "\u{1F52C} PHYTOPLANKTON CULTURES (SW: Tetra/Nanno \u2014 FW: Chlorella)",
+    color: "#7D3C98",
+    tasks: [
+      { freq: "DAILY", task: "Check all phyto cultures \u2014 color, density, smell", notes: "Tetra = bright green. Nanno = dark green/brown. Chlorella = deep green. Off-smell = problem.", freqColor: "#E8F8F5" },
+      { freq: "DAILY", task: "Swirl/agitate all phyto bottles", notes: "Cells settle and die if not mixed.", freqColor: "#E8F8F5" },
+      { freq: "DAILY", task: "Check phyto lights + aeration running", notes: "16-24 hr light. Airlines not clogged.", freqColor: "#E8F8F5" },
+      { freq: "\u2B50 TUESDAY", task: "REFILL all SW phyto cultures \u2014 top off with fresh F2 medium", notes: "Add fresh F2-dosed saltwater to existing cultures. Extends culture life.", freqColor: "#D4EFDF", special: true },
+      { freq: "\u2B50 TUESDAY", task: "REFILL all FW phyto (Chlorella) \u2014 top off with fresh medium", notes: "Same process, freshwater + nutrients.", freqColor: "#D4EFDF", special: true },
+      { freq: "\u2B50 THURSDAY", task: "FULL RESTART all SW phyto \u2014 new clean containers + fresh F2", notes: "Clean/sterilize old containers. New F2-dosed SW. Inoculate from Tuesday's culture.", freqColor: "#D4EFDF", special: true },
+      { freq: "\u2B50 THURSDAY", task: "FULL RESTART all FW phyto (Chlorella) \u2014 new clean containers", notes: "Same \u2014 clean containers, fresh medium, inoculate.", freqColor: "#D4EFDF", special: true },
+      { freq: "WEEKLY", task: "Assess Chlorella production vs Daphnia demand", notes: "Scale up Chlorella if running low. Yeast = emergency backup ONLY.", freqColor: "#FDEBD0" },
+    ]
+  },
+  {
+    title: "\u{1F527} EQUIPMENT & FACILITY",
+    color: "#566573",
+    tasks: [
+      { freq: "EVERY 2 WEEKS", task: "Inspect ALL air pumps, lines, gang valves", notes: "Every airline \u2014 kinks, clogs, leaks. Replace worn parts.", freqColor: "#FADBD8" },
+      { freq: "EVERY 2 WEEKS", task: "Check all lights/timers across all systems", notes: "Timers cycling? Bulbs working?", freqColor: "#FADBD8" },
+      { freq: "MONTHLY", task: "Clean/calibrate refractometer + test kits", notes: "RO/DI = 0 ppt. Cal fluid = 35 ppt. Check reagent expiry.", freqColor: "#F5EEF8" },
+      { freq: "MONTHLY", task: "Check salt mix inventory", notes: "2-4 weeks supply for water changes + new cultures.", freqColor: "#F5EEF8" },
+      { freq: "WEEKLY", task: "Inspect for pests \u2014 chaeto tanks + copepod cultures", notes: "Hydra, planaria, aiptasia. Remove manually. Quarantine if found. NEVER chemicals.", freqColor: "#FDEBD0" },
+    ]
+  },
+  {
+    title: "\u{1F4CB} END-OF-WEEK REVIEW",
+    color: "#2C3E50",
+    tasks: [
+      { freq: "WEEKLY", task: "Review culture health \u2014 flag declining cultures", notes: "Which need restart next week?", freqColor: "#FDEBD0" },
+      { freq: "WEEKLY", task: "Plan next week harvest + order forecast", notes: "Enough stock? Which cultures ready?", freqColor: "#FDEBD0" },
+      { freq: "WEEKLY", task: "Prepare aged water for next week", notes: "Both SW and FW. Sit 24-48 hrs. Match salinity/temp.", freqColor: "#FDEBD0" },
+    ]
+  },
+];
+
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const LS_KEY = "copepod_ops_v3_";
+
+function getWeekDates(baseDate) {
+  const d = new Date(baseDate);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff);
+  return DAYS.map((_, i) => { const dt = new Date(monday); dt.setDate(monday.getDate() + i); return dt; });
+}
+function fmtDate(d) { return (d.getMonth()+1)+"/"+d.getDate(); }
+function fmtFull(d) { return d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); }
+
+function shouldShow(task, dow) {
+  const f = task.freq.toUpperCase();
+  if (f.includes("DAILY") || f === "AS NEEDED") return true;
+  if (f.includes("TUESDAY") && dow === 1) return true;
+  if (f.includes("THURSDAY") && dow === 3) return true;
+  if (f.includes("EVERY 2-3") && (dow===1||dow===3||dow===5)) return true;
+  if (f.includes("WEEKLY") && dow === 4) return true;
+  if (f.includes("EVERY 2 WEEKS") && dow === 0) return true;
+  if (f.includes("MONTHLY") && dow === 0) return true;
+  return false;
+}
+
+function loadState(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; }
+}
+function saveState(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+}
+
+function App() {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState("today");
+  const [checks, setChecks] = useState(() => loadState(LS_KEY+"checks", {}));
+  const [notes, setNotes] = useState(() => loadState(LS_KEY+"notes", {}));
+  const [logEntries, setLogEntries] = useState(() => loadState(LS_KEY+"log", []));
+  const [expanded, setExpanded] = useState(() => {
+    const o = {}; SECTIONS.forEach((_,i) => { o[i] = true; }); return o;
+  });
+
+  useEffect(() => { saveState(LS_KEY+"checks", checks); }, [checks]);
+  useEffect(() => { saveState(LS_KEY+"notes", notes); }, [notes]);
+  useEffect(() => { saveState(LS_KEY+"log", logEntries); }, [logEntries]);
+
+  const weekDates = getWeekDates(currentDate);
+  const todayDow = (currentDate.getDay()+6)%7;
+  const dateKey = currentDate.toISOString().split("T")[0];
+
+  const toggleCheck = (si,ti,di) => {
+    const k = `${dateKey}_${si}_${ti}_${di??"t"}`;
+    setChecks(p => ({...p,[k]:!p[k]}));
+  };
+  const updateNote = (si,ti,di,v) => {
+    const k = `${dateKey}_${si}_${ti}_${di??"t"}`;
+    setNotes(p => ({...p,[k]:v}));
+  };
+
+  let totalDue=0, totalDone=0;
+  if (viewMode==="today") {
+    SECTIONS.forEach((s,si) => s.tasks.forEach((t,ti) => {
+      if (shouldShow(t,todayDow)) { totalDue++; if(checks[`${dateKey}_${si}_${ti}_t`]) totalDone++; }
+    }));
+  }
+  const pct = totalDue>0 ? Math.round(totalDone/totalDue*100) : 0;
+
+  const addLog = () => {
+    setLogEntries(p => [{ date:fmtFull(currentDate), done:totalDone, total:totalDue, pct, time:new Date().toLocaleTimeString() }, ...p].slice(0,60));
+  };
+
+  const clearDay = () => {
+    if (!confirm("Clear all checkmarks for today?")) return;
+    const newChecks = {...checks};
+    Object.keys(newChecks).forEach(k => { if (k.startsWith(dateKey)) delete newChecks[k]; });
+    setChecks(newChecks);
+  };
+
+  const s = (css) => css;
+
+  return (
+    <div style={{fontFamily:"Arial,sans-serif",background:"#F7F9FB",minHeight:"100vh",padding:12}}>
+      <div style={{background:"#1B4F72",color:"#fff",padding:"16px 20px",borderRadius:10,marginBottom:12}}>
+        <div style={{fontSize:20,fontWeight:700}}>COPEPODSFORSALE.COM</div>
+        <div style={{fontSize:13,opacity:0.8,marginTop:2}}>Daily Operations Task List</div>
+      </div>
+
+      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+        <div style={{display:"flex",gap:4,background:"#fff",borderRadius:8,padding:4,border:"1px solid #ddd"}}>
+          {["today","week","log"].map(m => (
+            <button key={m} onClick={()=>setViewMode(m)} style={{padding:"6px 14px",borderRadius:6,border:"none",background:viewMode===m?"#1B4F72":"transparent",color:viewMode===m?"#fff":"#333",fontWeight:600,cursor:"pointer",fontSize:13}}>{m.charAt(0).toUpperCase()+m.slice(1)}</button>
+          ))}
+        </div>
+        {viewMode!=="log" && (
+          <div style={{display:"flex",alignItems:"center",gap:6,background:"#fff",borderRadius:8,padding:"4px 8px",border:"1px solid #ddd"}}>
+            <button onClick={()=>{const d=new Date(currentDate);d.setDate(d.getDate()+(viewMode==="week"?-7:-1));setCurrentDate(d)}} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,padding:"2px 6px"}}>◀</button>
+            <span style={{fontWeight:600,fontSize:14,minWidth:140,textAlign:"center"}}>
+              {viewMode==="today"?fmtFull(currentDate):`${fmtDate(weekDates[0])} – ${fmtDate(weekDates[6])}`}
+            </span>
+            <button onClick={()=>{const d=new Date(currentDate);d.setDate(d.getDate()+(viewMode==="week"?7:1));setCurrentDate(d)}} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,padding:"2px 6px"}}>▶</button>
+            <button onClick={()=>setCurrentDate(new Date())} style={{padding:"4px 10px",borderRadius:4,border:"1px solid #1B4F72",background:"#fff",color:"#1B4F72",fontSize:11,fontWeight:600,cursor:"pointer",marginLeft:4}}>Today</button>
+          </div>
+        )}
+        {viewMode==="today" && (
+          <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:"auto",flexWrap:"wrap"}}>
+            <div style={{background:"#fff",borderRadius:8,padding:"6px 14px",border:"1px solid #ddd",fontSize:13}}>
+              <span style={{fontWeight:700,color:pct===100?"#27AE60":"#E67E22"}}>{totalDone}/{totalDue}</span>
+              <span style={{color:"#888",marginLeft:4}}>({pct}%)</span>
+            </div>
+            <div style={{width:120,height:8,background:"#eee",borderRadius:4,overflow:"hidden"}}>
+              <div style={{width:`${pct}%`,height:"100%",background:pct===100?"#27AE60":pct>50?"#F39C12":"#E74C3C",borderRadius:4,transition:"width 0.3s"}}/>
+            </div>
+            <button onClick={addLog} style={{padding:"6px 12px",borderRadius:6,border:"none",background:"#27AE60",color:"#fff",fontWeight:600,cursor:"pointer",fontSize:12}}>Save to Log</button>
+            <button onClick={clearDay} style={{padding:"6px 12px",borderRadius:6,border:"1px solid #E74C3C",background:"#fff",color:"#E74C3C",fontWeight:600,cursor:"pointer",fontSize:12}}>Reset Day</button>
+          </div>
+        )}
+      </div>
+
+      {viewMode==="today" && (
+        <div>
+          <div style={{fontSize:12,color:"#888",marginBottom:8}}>
+            {["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][currentDate.getDay()]} — showing tasks due today
+          </div>
+          {SECTIONS.map((sec,si) => {
+            const due = sec.tasks.filter(t=>shouldShow(t,todayDow));
+            if (!due.length) return null;
+            const done = due.filter(t => checks[`${dateKey}_${si}_${sec.tasks.indexOf(t)}_t`]).length;
+            return (
+              <div key={si} style={{marginBottom:10,borderRadius:8,overflow:"hidden",border:"1px solid #ddd"}}>
+                <div onClick={()=>setExpanded(p=>({...p,[si]:!p[si]}))} style={{background:sec.color,color:"#fff",padding:"10px 14px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontWeight:700,fontSize:14}}>{sec.title}</span>
+                  <span style={{fontSize:12,opacity:0.9}}>{done}/{due.length} ✓ {expanded[si]?"▾":"▸"}</span>
+                </div>
+                {expanded[si] && due.map(task => {
+                  const ti = sec.tasks.indexOf(task);
+                  const k = `${dateKey}_${si}_${ti}_t`;
+                  const checked = !!checks[k];
+                  const noteVal = notes[k]||"";
+                  return (
+                    <div key={ti} style={{display:"flex",alignItems:"flex-start",padding:"8px 14px",background:checked?"#F0FFF0":"#fff",borderBottom:"1px solid #f0f0f0",gap:10,opacity:checked?0.7:1}}>
+                      <input type="checkbox" checked={checked} onChange={()=>toggleCheck(si,ti,null)} style={{marginTop:4,width:18,height:18}} />
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                          <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:task.special?"#27AE60":task.freqColor,color:task.special?"#fff":"#333",whiteSpace:"nowrap"}}>{task.freq}</span>
+                          <span style={{fontSize:13,fontWeight:600,textDecoration:checked?"line-through":"none",color:checked?"#888":"#222"}}>{task.task}</span>
+                        </div>
+                        <div style={{fontSize:11,color:"#888",marginTop:2,fontStyle:"italic"}}>{task.notes}</div>
+                        <input value={noteVal} onChange={e=>updateNote(si,ti,null,e.target.value)} placeholder="Notes..." style={{marginTop:4,width:"100%",padding:"4px 8px",border:"1px solid #e0e0e0",borderRadius:4,fontSize:12,background:"#FAFAFA"}} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {viewMode==="week" && (
+        <div style={{overflowX:"auto"}}>
+          <div style={{fontSize:12,color:"#888",marginBottom:8}}>Week of {fmtFull(weekDates[0])}</div>
+          {SECTIONS.map((sec,si) => (
+            <div key={si} style={{marginBottom:10,borderRadius:8,overflow:"hidden",border:"1px solid #ddd"}}>
+              <div onClick={()=>setExpanded(p=>({...p,[si]:!p[si]}))} style={{background:sec.color,color:"#fff",padding:"10px 14px",cursor:"pointer",display:"flex",justifyContent:"space-between"}}>
+                <span style={{fontWeight:700,fontSize:14}}>{sec.title}</span>
+                <span style={{fontSize:12}}>{expanded[si]?"▾":"▸"}</span>
+              </div>
+              {expanded[si] && (
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                  <thead>
+                    <tr style={{background:"#f5f5f5"}}>
+                      <th style={{padding:"6px 10px",textAlign:"left",width:90,borderBottom:"1px solid #ddd",fontSize:11}}>FREQ</th>
+                      <th style={{padding:"6px 10px",textAlign:"left",borderBottom:"1px solid #ddd",fontSize:11}}>TASK</th>
+                      {weekDates.map((d,i) => (
+                        <th key={i} style={{padding:"6px 4px",textAlign:"center",width:52,borderBottom:"1px solid #ddd",fontSize:11,background:i===todayDow?"#D4EFDF":"transparent"}}>
+                          {DAYS[i]}<br/><span style={{fontSize:10,color:"#888"}}>{fmtDate(d)}</span>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sec.tasks.map((task,ti) => (
+                      <tr key={ti} style={{borderBottom:"1px solid #f0f0f0"}}>
+                        <td style={{padding:"6px 10px",background:task.special?"#D4EFDF":task.freqColor,fontWeight:700,fontSize:10,verticalAlign:"top"}}>{task.freq}</td>
+                        <td style={{padding:"6px 10px",verticalAlign:"top"}}>
+                          <div style={{fontWeight:600,fontSize:12}}>{task.task}</div>
+                          <div style={{fontSize:10,color:"#888",fontStyle:"italic"}}>{task.notes}</div>
+                        </td>
+                        {weekDates.map((d,di) => {
+                          const dk = d.toISOString().split("T")[0];
+                          const k2 = `${dk}_${si}_${ti}_${di}`;
+                          const due = shouldShow(task,di);
+                          return (
+                            <td key={di} style={{textAlign:"center",padding:4,background:di===todayDow?"#F0FFF0":"transparent",verticalAlign:"middle"}}>
+                              {due ? <input type="checkbox" checked={!!checks[k2]} onChange={()=>{setChecks(p=>({...p,[k2]:!p[k2]}))}} style={{width:16,height:16}} /> : <span style={{color:"#ddd"}}>—</span>}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {viewMode==="log" && (
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <span style={{fontSize:14,fontWeight:700}}>Daily Completion Log</span>
+            {logEntries.length>0 && <button onClick={()=>{if(confirm("Clear all log entries?")) setLogEntries([])}} style={{padding:"4px 10px",borderRadius:4,border:"1px solid #E74C3C",background:"#fff",color:"#E74C3C",fontSize:11,cursor:"pointer"}}>Clear Log</button>}
+          </div>
+          {!logEntries.length ? (
+            <div style={{background:"#fff",padding:20,borderRadius:8,border:"1px solid #ddd",textAlign:"center",color:"#888"}}>No entries yet. Use "Save to Log" in Today view.</div>
+          ) : (
+            <table style={{width:"100%",borderCollapse:"collapse",background:"#fff",borderRadius:8,overflow:"hidden",border:"1px solid #ddd",fontSize:13}}>
+              <thead>
+                <tr style={{background:"#1B4F72",color:"#fff"}}>
+                  <th style={{padding:"10px 14px",textAlign:"left"}}>Date</th>
+                  <th style={{padding:"10px 14px",textAlign:"center"}}>Done</th>
+                  <th style={{padding:"10px 14px",textAlign:"center"}}>Due</th>
+                  <th style={{padding:"10px 14px",textAlign:"center"}}>%</th>
+                  <th style={{padding:"10px 14px",textAlign:"right"}}>Saved</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logEntries.map((e,i) => (
+                  <tr key={i} style={{borderBottom:"1px solid #f0f0f0"}}>
+                    <td style={{padding:"8px 14px",fontWeight:600}}>{e.date}</td>
+                    <td style={{padding:"8px 14px",textAlign:"center"}}>{e.done}</td>
+                    <td style={{padding:"8px 14px",textAlign:"center"}}>{e.total}</td>
+                    <td style={{padding:"8px 14px",textAlign:"center"}}><span style={{fontWeight:700,color:e.pct===100?"#27AE60":e.pct>50?"#F39C12":"#E74C3C"}}>{e.pct}%</span></td>
+                    <td style={{padding:"8px 14px",textAlign:"right",color:"#888"}}>{e.time}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {viewMode!=="log" && (
+        <div style={{marginTop:16,display:"flex",gap:8,flexWrap:"wrap",fontSize:11}}>
+          {[{l:"Daily",bg:"#E8F8F5"},{l:"2-3 Days",bg:"#FEF9E7"},{l:"Tue/Thu Special",bg:"#27AE60",c:"#fff"},{l:"Weekly",bg:"#FDEBD0"},{l:"Biweekly",bg:"#FADBD8"},{l:"Monthly",bg:"#F5EEF8"}].map(({l,bg,c})=>(
+            <span key={l} style={{padding:"3px 10px",borderRadius:4,background:bg,color:c||"#333",fontWeight:600}}>{l}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>, document.getElementById("root"));
+</script>
+</body>
+</html>
