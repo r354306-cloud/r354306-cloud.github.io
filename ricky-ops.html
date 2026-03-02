@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFS Remote Ops - Ricky</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#0F1923;min-height:100vh;color:#E0E0E0}
+input[type=checkbox]{accent-color:#00E676;cursor:pointer}
+input[type=text],input[type=search]{color:#E0E0E0;background:#1A2A3A}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#0F1923}
+::-webkit-scrollbar-thumb{background:#2E4A62;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback} = React;
+
+const DAYS_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const DAYS_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function getDow(d) { return d.getDay(); } // 0=Sun
+
+const SECTIONS = [
+  {
+    title: "☀️ MORNING ROUTINE",
+    color: "#1565C0",
+    tasks: [
+      { freq: "DAILY", task: "Remind Cece how beautiful and amazing she is", notes: "Non-negotiable. Do this first.", freqColor: "#FCE4EC",
+        showOn: [0,1,2,3,4,5,6], special: true },
+      { freq: "MON–FRI", task: "Check email (AM)", notes: "Customer inquiries, supplier responses, shipping issues, school notifications.", freqColor: "#E3F2FD",
+        showOn: [1,2,3,4,5] },
+      { freq: "SAT–SUN", task: "Check email (once today)", notes: "Quick scan for anything urgent. Respond if needed.", freqColor: "#E3F2FD",
+        showOn: [0,6] },
+      { freq: "MON–FRI", task: "Check eBay messages (AM)", notes: "Customer questions, offers, return requests. Respond within 24 hrs for seller metrics.", freqColor: "#E3F2FD",
+        showOn: [1,2,3,4,5] },
+      { freq: "SAT–SUN", task: "Check eBay messages (once today)", notes: "Quick scan. Handle anything urgent.", freqColor: "#E3F2FD",
+        showOn: [0,6] },
+      { freq: "MON–FRI", task: "Check ReefBay messages (AM)", notes: "Customer service, order questions, issues.", freqColor: "#E3F2FD",
+        showOn: [1,2,3,4,5] },
+      { freq: "SAT–SUN", task: "Check ReefBay messages (once today)", notes: "Quick scan. Handle anything urgent.", freqColor: "#E3F2FD",
+        showOn: [0,6] },
+      { freq: "DAILY", task: "Check Messenger app", notes: "Business inquiries, customer DMs, supplier messages.", freqColor: "#E3F2FD",
+        showOn: [0,1,2,3,4,5,6] },
+      { freq: "DAILY", task: "Check for homework assignments", notes: "Check all class portals / LMS. Note due dates. Don't let anything sneak up.", freqColor: "#ECEFF1",
+        showOn: [0,1,2,3,4,5,6] },
+      { freq: "MONDAY AM", task: "Process employee pay", notes: "Process all employee payments first thing Monday morning.", freqColor: "#FBE9E7",
+        showOn: [1], special: true },
+      { freq: "MONDAY AM", task: "Pay Juliette", notes: "Process weekly payment Monday morning.", freqColor: "#FBE9E7",
+        showOn: [1], special: true },
+    ]
+  },
+  {
+    title: "🌙 NIGHT ROUTINE",
+    color: "#283593",
+    tasks: [
+      { freq: "MON–FRI", task: "Check email (PM)", notes: "Second pass — catch anything from the afternoon. Clear inbox.", freqColor: "#E8EAF6",
+        showOn: [1,2,3,4,5] },
+      { freq: "MON–FRI", task: "Check eBay messages (PM)", notes: "Second pass — respond to anything new since morning.", freqColor: "#E8EAF6",
+        showOn: [1,2,3,4,5] },
+      { freq: "MON–FRI", task: "Check ReefBay messages (PM)", notes: "Second pass — clear out any new messages.", freqColor: "#E8EAF6",
+        showOn: [1,2,3,4,5] },
+      { freq: "SUN–TUE NIGHT", task: "Build manifest for next day's orders", notes: "Check all ReefBay orders. Confirm bulk orders are included.", freqColor: "#FFF3E0",
+        showOn: [0,1,2] },
+      { freq: "SUN–TUE NIGHT", task: "Verify manifest — all orders accounted for, SKUs correct", notes: "Cross-check every order. Don't miss bulk. Double-check product classification.", freqColor: "#FFF3E0",
+        showOn: [0,1,2] },
+      { freq: "TUESDAY NIGHT", task: "Add DOA replacements to manifest", notes: "Check for any DOA claims from the week. Add replacement shipments.", freqColor: "#FFCC80",
+        showOn: [2], special: true },
+      { freq: "SUN–TUE NIGHT", task: "Send completed manifest", notes: "Confirm sent and received. Follow up if no acknowledgment.", freqColor: "#FFF3E0",
+        showOn: [0,1,2] },
+      { freq: "DAILY", task: "Work on current homework / assignments", notes: "Block out focused time. Prioritize by due date.", freqColor: "#ECEFF1",
+        showOn: [0,1,2,3,4,5,6] },
+    ]
+  },
+  {
+    title: "🚀 GROWTH & IMPROVEMENT",
+    color: "#2E7D32",
+    tasks: [
+      { freq: "THU–SUN", task: "Complete 1 growth/improvement task today", notes: "Examples: new product photo shoot, write a blog post, improve a listing, build an email sequence, research a new sales channel, test new packaging, create a video.", freqColor: "#E8F5E9",
+        showOn: [0,4,5,6] },
+      { freq: "EVERY 2 WEEKS", task: "Brainstorm & document 1 new product idea", notes: "Research market demand, cost to produce, competition. Write it up. Could be new species, bundle, accessory, or digital product.", freqColor: "#C8E6C9",
+        showOn: [1], biweekly: true, biweeklyOffset: 0 },
+      { freq: "WEEKLY", task: "Optimize 1 process or workflow", notes: "Find something inefficient and fix it. Manifest system, packing process, culture rotation, shipping workflow, website flow, etc.", freqColor: "#C8E6C9",
+        showOn: [3] },
+    ]
+  },
+  {
+    title: "💰 SEO & MARKETING",
+    color: "#6A1B9A",
+    tasks: [
+      { freq: "WEEKLY", task: "SEO task — optimize 1 product page or fix 1 GSC issue", notes: "Update title tags, meta descriptions, fix noindex pages, add FAQ schema, target high-opportunity keywords. 61 products to cycle through.", freqColor: "#F3E5F5",
+        showOn: [3] },
+      { freq: "WEEKLY", task: "Check Google Search Console — new errors or indexing issues", notes: "Look for new excluded pages, crawl errors, coverage drops. Fix immediately.", freqColor: "#F3E5F5",
+        showOn: [3] },
+      { freq: "EVERY 2 WKS (A)", task: "Send Brevo email blast to subscriber list", notes: "Promotional email — new products, deals, educational content. Alternates with Facebook ad week. WEEK A = Brevo.", freqColor: "#F3E5F5",
+        showOn: [3], biweekly: true, biweeklyOffset: 0 },
+      { freq: "EVERY 2 WKS (B)", task: "Post Facebook group ad", notes: "Targeted ad in aquarium/reef Facebook groups. Alternates with Brevo email week. WEEK B = Facebook.", freqColor: "#F3E5F5",
+        showOn: [3], biweekly: true, biweeklyOffset: 1 },
+    ]
+  },
+  {
+    title: "🏪 EBAY & WOOCOMMERCE",
+    color: "#00838F",
+    tasks: [
+      { freq: "WEEKLY", task: "Improve 1 eBay listing — better photos, description, or pricing", notes: "Pick 1 product. Upgrade photos, rewrite description, adjust pricing, add keywords. Cycle through all listings over time.", freqColor: "#E0F7FA",
+        showOn: [2] },
+      { freq: "WEEKLY", task: "Improve 1 WooCommerce product page — photos, copy, or SEO", notes: "Pick 1 product. Better images, rewrite description, update meta title/description, check mobile layout.", freqColor: "#E0F7FA",
+        showOn: [2] },
+      { freq: "WEEKLY", task: "Check eBay seller metrics", notes: "Late shipment rate, defect rate, tracking upload rate. Stay above Top Rated standards.", freqColor: "#E0F7FA",
+        showOn: [2] },
+    ]
+  },
+  {
+    title: "🔍 MARKETPLACE AUDITS",
+    color: "#4527A0",
+    tasks: [
+      { freq: "TUESDAY", task: "Audit Walmart Seller account", notes: "Check listings, performance metrics, reviews, returns. Fix any issues. Research new listing opportunities.", freqColor: "#EDE7F6",
+        showOn: [2] },
+      { freq: "WEDNESDAY", task: "Audit TikTok Shop", notes: "Check product listings, analytics, engagement. Update content. Research trending products/hashtags.", freqColor: "#EDE7F6",
+        showOn: [3] },
+      { freq: "FRIDAY", task: "Audit Amazon Seller account", notes: "Check listings, Buy Box status, reviews, returns, performance metrics. Optimize where needed.", freqColor: "#EDE7F6",
+        showOn: [5] },
+    ]
+  },
+  {
+    title: "💵 FINANCES & BOOKKEEPING",
+    color: "#BF360C",
+    tasks: [
+      { freq: "WEEKLY", task: "Quick bookkeeping — log expenses & revenue", notes: "eBay fees, shipping costs, supply purchases, sales totals. Stay on top of it weekly so it doesn't pile up.", freqColor: "#FBE9E7",
+        showOn: [1] },
+    ]
+  },
+  {
+    title: "📚 SCHOOL — WEEKLY REVIEW",
+    color: "#37474F",
+    tasks: [
+      { freq: "SUNDAY", task: "Review upcoming exams & project deadlines", notes: "Check syllabus for next 2 weeks. Start studying/working early. Add deadlines to calendar.", freqColor: "#CFD8DC",
+        showOn: [0] },
+    ]
+  },
+  {
+    title: "📋 INVENTORY & SUPPLIES",
+    color: "#4E342E",
+    tasks: [
+      { freq: "THURSDAY", task: "Check packaging & shipping supply inventory — order if low", notes: "Bags, rubber bands, insulated boxes, heat/cold packs, labels, tape, printer ink. Reorder before running out.", freqColor: "#EFEBE9",
+        showOn: [4] },
+      { freq: "THURSDAY", task: "Check culture supply inventory — order if low", notes: "Salt mix, F2 chemicals, containers, airline tubing, replacement parts. Order now so it arrives before you need it.", freqColor: "#EFEBE9",
+        showOn: [4] },
+    ]
+  },
+  {
+    title: "🔄 WEEKLY REVIEW (Sunday Night)",
+    color: "#263238",
+    tasks: [
+      { freq: "SUNDAY", task: "Plan the week ahead — priorities & calendar", notes: "What orders are expected? Any launches? School deadlines? Block time for growth tasks.", freqColor: "#ECEFF1",
+        showOn: [0] },
+      { freq: "SUNDAY", task: "Review last week — what got done, what didn't", notes: "Be honest. Move incomplete tasks forward. Identify bottlenecks.", freqColor: "#ECEFF1",
+        showOn: [0] },
+      { freq: "SUNDAY", task: "Check on employee task completion", notes: "Review their log from the operations app. Any issues to address Monday?", freqColor: "#ECEFF1",
+        showOn: [0] },
+    ]
+  },
+];
+
+const LS = "ricky_ops_v1_";
+function load(k,fb){try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch(e){return fb}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+
+function fmtFull(d){return d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric",year:"numeric"})}
+function fmtShort(d){return (d.getMonth()+1)+"/"+d.getDate()}
+
+function isTaskDueToday(task, date) {
+  const dow = date.getDay();
+  if (!task.showOn.includes(dow)) return false;
+  if (task.biweekly) {
+    const weekNum = Math.floor((date.getTime() - new Date(2026,0,5).getTime()) / (7*24*60*60*1000));
+    const offset = task.biweeklyOffset || 0;
+    return (weekNum + offset) % 2 === 0;
+  }
+  return true;
+}
+
+function getFreqLabel(task, date) {
+  const dow = date.getDay();
+  const isWeekend = dow === 0 || dow === 6;
+  if (task.weekdayNote && task.weekendNote) {
+    return isWeekend ? task.weekendNote : task.weekdayNote;
+  }
+  return task.freq;
+}
+
+function App() {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [view, setView] = useState("today");
+  const [checks, setChecks] = useState(() => load(LS+"chk",{}));
+  const [notes, setNotes] = useState(() => load(LS+"nts",{}));
+  const [log, setLog] = useState(() => load(LS+"log",[]));
+  const [expanded, setExpanded] = useState(() => {
+    const o={}; SECTIONS.forEach((_,i)=>{o[i]=true}); return o;
+  });
+
+  useEffect(()=>{save(LS+"chk",checks)},[checks]);
+  useEffect(()=>{save(LS+"nts",notes)},[notes]);
+  useEffect(()=>{save(LS+"log",log)},[log]);
+
+  const dk = currentDate.toISOString().split("T")[0];
+
+  const toggle = (si,ti) => {
+    const k=`${dk}_${si}_${ti}`;
+    setChecks(p=>({...p,[k]:!p[k]}));
+  };
+
+  let totalDue=0, totalDone=0;
+  SECTIONS.forEach((s,si)=>s.tasks.forEach((t,ti)=>{
+    if(isTaskDueToday(t,currentDate)){totalDue++;if(checks[`${dk}_${si}_${ti}`])totalDone++}
+  }));
+  const pct = totalDue>0?Math.round(totalDone/totalDue*100):0;
+
+  const addLog = () => {
+    setLog(p=>[{date:fmtFull(currentDate),done:totalDone,total:totalDue,pct,time:new Date().toLocaleTimeString()},...p].slice(0,60));
+  };
+
+  const changeDay = (n) => {const d=new Date(currentDate);d.setDate(d.getDate()+n);setCurrentDate(d)};
+
+  return (
+    <div style={{minHeight:"100vh",padding:12,maxWidth:900,margin:"0 auto"}}>
+      {/* Header */}
+      <div style={{background:"linear-gradient(135deg,#0D47A1,#1565C0,#0D47A1)",padding:"18px 20px",borderRadius:12,marginBottom:14,border:"1px solid #1E88E5"}}>
+        <div style={{fontSize:20,fontWeight:800,color:"#fff",letterSpacing:0.5}}>RICKY — REMOTE OPS</div>
+        <div style={{fontSize:12,color:"#90CAF9",marginTop:2}}>CopepodForSale.com — Owner Dashboard</div>
+      </div>
+
+      {/* Nav */}
+      <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+        <div style={{display:"flex",gap:3,background:"#1A2A3A",borderRadius:8,padding:3,border:"1px solid #2E4A62"}}>
+          {["today","week","log"].map(m=>(
+            <button key={m} onClick={()=>setView(m)} style={{padding:"7px 16px",borderRadius:6,border:"none",background:view===m?"#1565C0":"transparent",color:view===m?"#fff":"#90CAF9",fontWeight:600,cursor:"pointer",fontSize:13}}>{m.charAt(0).toUpperCase()+m.slice(1)}</button>
+          ))}
+        </div>
+
+        {view!=="log" && (
+          <div style={{display:"flex",alignItems:"center",gap:6,background:"#1A2A3A",borderRadius:8,padding:"4px 10px",border:"1px solid #2E4A62"}}>
+            <button onClick={()=>changeDay(view==="week"?-7:-1)} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,padding:"2px 6px",color:"#90CAF9"}}>◀</button>
+            <span style={{fontWeight:600,fontSize:13,minWidth:200,textAlign:"center",color:"#E0E0E0"}}>
+              {view==="today"?fmtFull(currentDate):"Week View"}
+            </span>
+            <button onClick={()=>changeDay(view==="week"?7:1)} style={{border:"none",background:"none",cursor:"pointer",fontSize:16,padding:"2px 6px",color:"#90CAF9"}}>▶</button>
+            <button onClick={()=>setCurrentDate(new Date())} style={{padding:"4px 10px",borderRadius:4,border:"1px solid #1565C0",background:"transparent",color:"#90CAF9",fontSize:11,fontWeight:600,cursor:"pointer",marginLeft:4}}>Today</button>
+          </div>
+        )}
+
+        {view==="today" && (
+          <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:"auto",flexWrap:"wrap"}}>
+            <div style={{background:"#1A2A3A",borderRadius:8,padding:"6px 14px",border:"1px solid #2E4A62",fontSize:13}}>
+              <span style={{fontWeight:700,color:pct===100?"#00E676":pct>50?"#FFB300":"#FF5252"}}>{totalDone}/{totalDue}</span>
+              <span style={{color:"#78909C",marginLeft:4}}>({pct}%)</span>
+            </div>
+            <div style={{width:120,height:8,background:"#1A2A3A",borderRadius:4,overflow:"hidden",border:"1px solid #2E4A62"}}>
+              <div style={{width:`${pct}%`,height:"100%",background:pct===100?"#00E676":pct>50?"#FFB300":"#FF5252",borderRadius:4,transition:"width 0.3s"}}/>
+            </div>
+            <button onClick={addLog} style={{padding:"6px 12px",borderRadius:6,border:"none",background:"#00E676",color:"#0F1923",fontWeight:700,cursor:"pointer",fontSize:12}}>Save Log</button>
+          </div>
+        )}
+      </div>
+
+      {/* TODAY VIEW */}
+      {view==="today" && (
+        <div>
+          {SECTIONS.map((sec,si) => {
+            const due = sec.tasks.filter(t=>isTaskDueToday(t,currentDate));
+            if (!due.length) return null;
+            const done = due.filter(t=>checks[`${dk}_${si}_${sec.tasks.indexOf(t)}`]).length;
+            const allDone = done===due.length && due.length>0;
+            return (
+              <div key={si} style={{marginBottom:10,borderRadius:10,overflow:"hidden",border:`1px solid ${allDone?"#2E7D32":"#2E4A62"}`}}>
+                <div onClick={()=>setExpanded(p=>({...p,[si]:!p[si]}))} style={{background:allDone?"#1B5E20":sec.color,color:"#fff",padding:"11px 16px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"background 0.3s"}}>
+                  <span style={{fontWeight:700,fontSize:14}}>{sec.title}</span>
+                  <span style={{fontSize:12,opacity:0.9}}>{allDone?"✅ ":"" }{done}/{due.length} {expanded[si]?"▾":"▸"}</span>
+                </div>
+                {expanded[si] && due.map(task => {
+                  const ti = sec.tasks.indexOf(task);
+                  const k = `${dk}_${si}_${ti}`;
+                  const checked = !!checks[k];
+                  const noteVal = notes[k]||"";
+                  const freqLabel = getFreqLabel(task, currentDate);
+                  return (
+                    <div key={ti} style={{display:"flex",alignItems:"flex-start",padding:"10px 16px",background:checked?"#0A1F12":"#0F1923",borderBottom:"1px solid #1A2A3A",gap:12,transition:"background 0.2s"}}>
+                      <input type="checkbox" checked={checked} onChange={()=>toggle(si,ti)} style={{marginTop:4,width:18,height:18}} />
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                          <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:task.special?"#FF6D00":task.freqColor,color:task.special?"#fff":"#333",whiteSpace:"nowrap"}}>{freqLabel}</span>
+                          <span style={{fontSize:13,fontWeight:600,textDecoration:checked?"line-through":"none",color:checked?"#4CAF50":"#E0E0E0"}}>{task.task}</span>
+                        </div>
+                        <div style={{fontSize:11,color:"#78909C",marginTop:3,fontStyle:"italic"}}>{task.notes}</div>
+                        <input value={noteVal} onChange={e=>{const k2=`${dk}_${si}_${ti}`;setNotes(p=>({...p,[k2]:e.target.value}))}} placeholder="Notes..." style={{marginTop:5,width:"100%",padding:"5px 9px",border:"1px solid #2E4A62",borderRadius:5,fontSize:12,background:"#1A2A3A",color:"#E0E0E0",outline:"none"}} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* WEEK VIEW */}
+      {view==="week" && (
+        <div style={{overflowX:"auto"}}>
+          {SECTIONS.map((sec,si) => {
+            const hasAnyThisWeek = sec.tasks.some(t => {
+              for(let i=0;i<7;i++){const d=new Date(currentDate);const dow=d.getDay();const diff=dow===0?-6:1-dow;d.setDate(d.getDate()+diff+i);if(isTaskDueToday(t,d))return true}return false;
+            });
+            if(!hasAnyThisWeek) return null;
+            return (
+              <div key={si} style={{marginBottom:10,borderRadius:10,overflow:"hidden",border:"1px solid #2E4A62"}}>
+                <div onClick={()=>setExpanded(p=>({...p,[si]:!p[si]}))} style={{background:sec.color,color:"#fff",padding:"10px 14px",cursor:"pointer",display:"flex",justifyContent:"space-between"}}>
+                  <span style={{fontWeight:700,fontSize:13}}>{sec.title}</span>
+                  <span style={{fontSize:12}}>{expanded[si]?"▾":"▸"}</span>
+                </div>
+                {expanded[si] && (
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                    <thead>
+                      <tr style={{background:"#1A2A3A"}}>
+                        <th style={{padding:"6px 10px",textAlign:"left",borderBottom:"1px solid #2E4A62",fontSize:11,color:"#78909C"}}>TASK</th>
+                        {(() => {
+                          const d=new Date(currentDate);const dow=d.getDay();const diff=dow===0?-6:1-dow;
+                          const mon=new Date(d);mon.setDate(d.getDate()+diff);
+                          return [0,1,2,3,4,5,6].map(i => {
+                            const dt=new Date(mon);dt.setDate(mon.getDate()+i);
+                            const isToday = dt.toDateString()===new Date().toDateString();
+                            return <th key={i} style={{padding:"6px 4px",textAlign:"center",width:48,borderBottom:"1px solid #2E4A62",fontSize:11,color:isToday?"#00E676":"#78909C",background:isToday?"#0A1F12":"transparent"}}>{DAYS_SHORT[(i+1)%7]}<br/><span style={{fontSize:10}}>{fmtShort(dt)}</span></th>
+                          });
+                        })()}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sec.tasks.map((task,ti) => {
+                        const d=new Date(currentDate);const dow=d.getDay();const diff=dow===0?-6:1-dow;
+                        const mon=new Date(d);mon.setDate(d.getDate()+diff);
+                        return (
+                          <tr key={ti} style={{borderBottom:"1px solid #1A2A3A"}}>
+                            <td style={{padding:"6px 10px",color:"#B0BEC5",verticalAlign:"top",maxWidth:250}}>
+                              <div style={{fontWeight:600,fontSize:12,color:"#E0E0E0"}}>{task.task}</div>
+                            </td>
+                            {[0,1,2,3,4,5,6].map(i => {
+                              const dt=new Date(mon);dt.setDate(mon.getDate()+i);
+                              const dkey=dt.toISOString().split("T")[0];
+                              const due=isTaskDueToday(task,dt);
+                              const k2=`${dkey}_${si}_${ti}`;
+                              const isToday=dt.toDateString()===new Date().toDateString();
+                              return (
+                                <td key={i} style={{textAlign:"center",padding:4,background:isToday?"#0A1F12":"transparent",verticalAlign:"middle"}}>
+                                  {due ? <input type="checkbox" checked={!!checks[k2]} onChange={()=>setChecks(p=>({...p,[k2]:!p[k2]}))} style={{width:16,height:16}} /> : <span style={{color:"#2E4A62"}}>—</span>}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* LOG VIEW */}
+      {view==="log" && (
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <span style={{fontSize:14,fontWeight:700,color:"#E0E0E0"}}>Daily Completion Log</span>
+            {log.length>0 && <button onClick={()=>{if(confirm("Clear all log entries?"))setLog([])}} style={{padding:"4px 10px",borderRadius:4,border:"1px solid #FF5252",background:"transparent",color:"#FF5252",fontSize:11,cursor:"pointer"}}>Clear</button>}
+          </div>
+          {!log.length ? (
+            <div style={{background:"#1A2A3A",padding:20,borderRadius:8,border:"1px solid #2E4A62",textAlign:"center",color:"#78909C"}}>No entries yet. Use "Save Log" in Today view.</div>
+          ) : (
+            <table style={{width:"100%",borderCollapse:"collapse",background:"#1A2A3A",borderRadius:8,overflow:"hidden",border:"1px solid #2E4A62",fontSize:13}}>
+              <thead>
+                <tr style={{background:"#0D47A1"}}>
+                  <th style={{padding:"10px 14px",textAlign:"left",color:"#fff"}}>Date</th>
+                  <th style={{padding:"10px 14px",textAlign:"center",color:"#fff"}}>Done</th>
+                  <th style={{padding:"10px 14px",textAlign:"center",color:"#fff"}}>Due</th>
+                  <th style={{padding:"10px 14px",textAlign:"center",color:"#fff"}}>%</th>
+                  <th style={{padding:"10px 14px",textAlign:"right",color:"#fff"}}>Saved</th>
+                </tr>
+              </thead>
+              <tbody>
+                {log.map((e,i) => (
+                  <tr key={i} style={{borderBottom:"1px solid #2E4A62"}}>
+                    <td style={{padding:"8px 14px",fontWeight:600,color:"#E0E0E0"}}>{e.date}</td>
+                    <td style={{padding:"8px 14px",textAlign:"center",color:"#B0BEC5"}}>{e.done}</td>
+                    <td style={{padding:"8px 14px",textAlign:"center",color:"#B0BEC5"}}>{e.total}</td>
+                    <td style={{padding:"8px 14px",textAlign:"center"}}><span style={{fontWeight:700,color:e.pct===100?"#00E676":e.pct>50?"#FFB300":"#FF5252"}}>{e.pct}%</span></td>
+                    <td style={{padding:"8px 14px",textAlign:"right",color:"#78909C"}}>{e.time}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* Legend */}
+      {view!=="log" && (
+        <div style={{marginTop:16,display:"flex",gap:6,flexWrap:"wrap",fontSize:10}}>
+          {[{l:"Manifest Days (Sun-Tue)",bg:"#FFF3E0",c:"#333"},{l:"Tues Special",bg:"#FF6D00",c:"#fff"},{l:"Mon Payments",bg:"#FBE9E7",c:"#333"},{l:"Thu-Sun Growth",bg:"#E8F5E9",c:"#333"},{l:"Weekly",bg:"#CFD8DC",c:"#333"},{l:"Daily",bg:"#E3F2FD",c:"#333"}].map(({l,bg,c})=>(
+            <span key={l} style={{padding:"3px 8px",borderRadius:4,background:bg,color:c,fontWeight:600}}>{l}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>, document.getElementById("root"));
+</script>
+</body>
+</html>
