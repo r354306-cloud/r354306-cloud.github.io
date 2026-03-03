@@ -47,7 +47,7 @@ const {useState,useEffect,useCallback,useRef} = React;
 // ═══════════════════════════════════════════════════════
 // CONFIGURATION — Update these after deploying Apps Script
 // ═══════════════════════════════════════════════════════
-const APPS_SCRIPT_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AY5xjrQSmcz4gcv2FD4Ud8sxBbUO118Id-p8Wg1UozRsT8BmDBSfaKc9IkhTLebr3QVfVLni1HJHSPa3MsZcH-Om8jg8FGvz-rjnVUweSn_qx4iTCZYlWWs-0BAvPVlS1tVBowAkA-nFXWc5Iy35R83R562dDsBlLJu4zTxx9jmcyTuEdguV_0NBGGmFhG47tzR-9G4jGjdmtUuav07_O9EcSgHQITtROe0kQ5052gWW0PqGNL-K2lZ7PrBZaaYlGCMrbd8XJXaJ_fb_yPoE1eS0J_032J7jJg&lib=M5Z70ZdXjd03MBBLNWVecWkEJGSh9r9J6"; // <-- Paste your deployed Apps Script web app URL here
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzOjzjS6jaP4szQ7RNqUNnOdhnOShP5qBoyS6O5_4Drl2h-L52JKGu20aKRCUeFvjOu/exec";
 
 // Password hash (SHA-256 of your password)
 // Default password: "copepod2026"
@@ -245,8 +245,9 @@ async function sheetsLoad(dateKey) {
   if (!APPS_SCRIPT_URL) return null;
   try {
     const url = APPS_SCRIPT_URL + "?action=load&date=" + encodeURIComponent(dateKey);
-    const res = await fetch(url);
-    const data = await res.json();
+    const res = await fetch(url, { redirect: "follow" });
+    const text = await res.text();
+    const data = JSON.parse(text);
     if (data.status === "ok") return data;
     return null;
   } catch (e) {
@@ -258,12 +259,12 @@ async function sheetsLoad(dateKey) {
 async function sheetsSave(dateKey, checks, notes) {
   if (!APPS_SCRIPT_URL) return false;
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ action: "save", date: dateKey, checks, notes })
-    });
-    const data = await res.json();
+    // Use GET with encoded payload to avoid CORS preflight issues with POST
+    const payload = encodeURIComponent(JSON.stringify({ action: "save", date: dateKey, checks, notes }));
+    const url = APPS_SCRIPT_URL + "?payload=" + payload;
+    const res = await fetch(url, { redirect: "follow" });
+    const text = await res.text();
+    const data = JSON.parse(text);
     return data.status === "ok";
   } catch (e) {
     console.error("Sheets save error:", e);
@@ -274,12 +275,11 @@ async function sheetsSave(dateKey, checks, notes) {
 async function sheetsSaveLog(entry) {
   if (!APPS_SCRIPT_URL) return false;
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ action: "saveLog", ...entry })
-    });
-    const data = await res.json();
+    const payload = encodeURIComponent(JSON.stringify({ action: "saveLog", ...entry }));
+    const url = APPS_SCRIPT_URL + "?payload=" + payload;
+    const res = await fetch(url, { redirect: "follow" });
+    const text = await res.text();
+    const data = JSON.parse(text);
     return data.status === "ok";
   } catch (e) {
     console.error("Sheets log error:", e);
@@ -291,8 +291,9 @@ async function sheetsLoadLog() {
   if (!APPS_SCRIPT_URL) return null;
   try {
     const url = APPS_SCRIPT_URL + "?action=loadLog";
-    const res = await fetch(url);
-    const data = await res.json();
+    const res = await fetch(url, { redirect: "follow" });
+    const text = await res.text();
+    const data = JSON.parse(text);
     if (data.status === "ok") return data.log;
     return null;
   } catch (e) {
