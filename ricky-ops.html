@@ -47,7 +47,7 @@ const {useState,useEffect,useCallback,useRef} = React;
 // ═══════════════════════════════════════════════════════
 // CONFIGURATION — Update these after deploying Apps Script
 // ═══════════════════════════════════════════════════════
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwVtDFYbagLZ5PbZfzXA-usDHZZxJ5wWaRfli83TafajjEV7AXMkbgdiL26n0vdNBXR/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwF5utl9SqjSldFXKh_dJagM_UNl0V07bJgNku6HGffREeczDtgGFlqwKuPt9WJPjy_/exec";
 
 // Password hash (SHA-256 of your password)
 // Default password: "copepod2026"
@@ -389,7 +389,13 @@ function App() {
   });
 
   const saveTimer = useRef(null);
+  const checksRef = useRef(checks);
+  const notesRef = useRef(notes);
+  checksRef.current = checks;
+  notesRef.current = notes;
   const dk = currentDate.toISOString().split("T")[0];
+  const dkRef = useRef(dk);
+  dkRef.current = dk;
 
   // Load data from Sheets on date change
   useEffect(() => {
@@ -405,7 +411,13 @@ function App() {
       const data = await sheetsLoad(dk);
       if (cancelled) return;
       if (data) {
-        if (data.checks) setChecks(prev => ({ ...prev, ...data.checks }));
+        if (data.checks) {
+          const parsed = {};
+          Object.entries(data.checks).forEach(([k, v]) => {
+            parsed[k] = v === true || v === "true" || v === "TRUE";
+          });
+          setChecks(prev => ({ ...prev, ...parsed }));
+        }
         if (data.notes) setNotes(prev => ({ ...prev, ...data.notes }));
         setSyncStatus("saved");
       } else {
@@ -431,19 +443,22 @@ function App() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSyncStatus("saving");
     saveTimer.current = setTimeout(async () => {
+      const curDk = dkRef.current;
+      const curChecks = checksRef.current;
+      const curNotes = notesRef.current;
       // Filter checks/notes for current date only
       const dateChecks = {};
       const dateNotes = {};
-      Object.entries(checks).forEach(([k, v]) => {
-        if (k.startsWith(dk)) dateChecks[k] = v;
+      Object.entries(curChecks).forEach(([k, v]) => {
+        if (k.startsWith(curDk) && v) dateChecks[k] = v;
       });
-      Object.entries(notes).forEach(([k, v]) => {
-        if (k.startsWith(dk) && v) dateNotes[k] = v;
+      Object.entries(curNotes).forEach(([k, v]) => {
+        if (k.startsWith(curDk) && v) dateNotes[k] = v;
       });
-      const ok = await sheetsSave(dk, dateChecks, dateNotes);
+      const ok = await sheetsSave(curDk, dateChecks, dateNotes);
       setSyncStatus(ok ? "saved" : "error");
     }, 1500);
-  }, [checks, notes, dk]);
+  }, []);
 
   const toggle = (si, ti) => {
     const k = `${dk}_${si}_${ti}`;
