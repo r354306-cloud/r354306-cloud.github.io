@@ -47,7 +47,7 @@ const {useState,useEffect,useCallback,useRef} = React;
 // ═══════════════════════════════════════════════════════
 // CONFIGURATION — Update these after deploying Apps Script
 // ═══════════════════════════════════════════════════════
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKil-UF7OlHS8gHTAy50rKtV3k3C6SfJWNSYi4plWpK-YUvxT4h_fPtOgNcslUybgV/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwVtDFYbagLZ5PbZfzXA-usDHZZxJ5wWaRfli83TafajjEV7AXMkbgdiL26n0vdNBXR/exec";
 
 // Password hash (SHA-256 of your password)
 // Default password: "copepod2026"
@@ -245,7 +245,7 @@ async function sheetsLoad(dateKey) {
   if (!APPS_SCRIPT_URL) return null;
   try {
     const url = APPS_SCRIPT_URL + "?action=load&date=" + encodeURIComponent(dateKey);
-    const res = await fetch(url, { redirect: "follow" });
+    const res = await fetch(url);
     const text = await res.text();
     const data = JSON.parse(text);
     if (data.status === "ok") return data;
@@ -259,10 +259,14 @@ async function sheetsLoad(dateKey) {
 async function sheetsSave(dateKey, checks, notes) {
   if (!APPS_SCRIPT_URL) return false;
   try {
-    // Use GET with encoded payload to avoid CORS preflight issues with POST
-    const payload = encodeURIComponent(JSON.stringify({ action: "save", date: dateKey, checks, notes }));
-    const url = APPS_SCRIPT_URL + "?payload=" + payload;
-    const res = await fetch(url, { redirect: "follow" });
+    const params = new URLSearchParams({
+      action: "save",
+      date: dateKey,
+      checks: JSON.stringify(checks),
+      notes: JSON.stringify(notes)
+    });
+    const url = APPS_SCRIPT_URL + "?" + params.toString();
+    const res = await fetch(url);
     const text = await res.text();
     const data = JSON.parse(text);
     return data.status === "ok";
@@ -275,9 +279,17 @@ async function sheetsSave(dateKey, checks, notes) {
 async function sheetsSaveLog(entry) {
   if (!APPS_SCRIPT_URL) return false;
   try {
-    const payload = encodeURIComponent(JSON.stringify({ action: "saveLog", ...entry }));
-    const url = APPS_SCRIPT_URL + "?payload=" + payload;
-    const res = await fetch(url, { redirect: "follow" });
+    const params = new URLSearchParams({
+      action: "saveLog",
+      date: entry.date,
+      dateKey: entry.dateKey,
+      done: String(entry.done),
+      total: String(entry.total),
+      pct: String(entry.pct),
+      time: entry.time
+    });
+    const url = APPS_SCRIPT_URL + "?" + params.toString();
+    const res = await fetch(url);
     const text = await res.text();
     const data = JSON.parse(text);
     return data.status === "ok";
@@ -291,7 +303,7 @@ async function sheetsLoadLog() {
   if (!APPS_SCRIPT_URL) return null;
   try {
     const url = APPS_SCRIPT_URL + "?action=loadLog";
-    const res = await fetch(url, { redirect: "follow" });
+    const res = await fetch(url);
     const text = await res.text();
     const data = JSON.parse(text);
     if (data.status === "ok") return data.log;
