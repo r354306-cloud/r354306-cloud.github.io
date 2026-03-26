@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cecelia's Econ Study Quiz</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #fdf6f0; color: #3d2c2c; line-height: 1.65; }
+
+  /* ── HEADER ── */
+  .header { background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 50%, #e8eaf6 100%); padding: 36px 20px 28px; text-align: center; border-bottom: 3px solid #f48fb1; position: relative; overflow: hidden; }
+  .header h1 { font-size: 2em; color: #ad1457; margin-bottom: 4px; }
+  .header .subtitle { color: #6a1b9a; font-size: 1.05em; }
+  .cat-row { display: flex; justify-content: center; gap: 18px; margin-top: 14px; font-size: 1.6em; }
+  .cat-row span { animation: catBounce 1.5s ease-in-out infinite; }
+  .cat-row span:nth-child(2) { animation-delay: 0.3s; }
+  .cat-row span:nth-child(3) { animation-delay: 0.6s; }
+  @keyframes catBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap { position: sticky; top: 0; z-index: 100; background: #fdf6f0; padding: 10px 20px; border-bottom: 1px solid #f8bbd0; }
+  .progress-bar-bg { height: 12px; background: #fce4ec; border-radius: 10px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #f48fb1, #ce93d8, #9fa8da); border-radius: 10px; transition: width 0.4s ease; width: 0%; }
+  .progress-text { font-size: 0.82em; color: #ad1457; margin-top: 4px; text-align: center; }
+
+  /* ── CONTAINER ── */
+  .container { max-width: 780px; margin: 0 auto; padding: 20px; }
+
+  /* ── QUESTION CARD ── */
+  .q-card { background: #fff; border-radius: 14px; margin-bottom: 18px; padding: 22px 24px; border: 2px solid #f8bbd0; box-shadow: 0 2px 8px rgba(173,20,87,0.06); transition: border-color 0.3s; }
+  .q-card.answered { border-color: #ce93d8; }
+  .q-card.review-correct { border-left: 5px solid #66bb6a; }
+  .q-card.review-wrong { border-left: 5px solid #ef5350; }
+  .q-num { font-size: 0.8em; font-weight: 700; color: #ad1457; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .q-topic { display: inline-block; background: #f3e5f5; color: #7b1fa2; padding: 2px 10px; border-radius: 12px; font-size: 0.72em; font-weight: 600; margin-left: 8px; }
+  .q-text { font-size: 1.02em; margin-bottom: 14px; color: #37474f; }
+
+  /* ── TABLE ── */
+  .q-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.88em; }
+  .q-table th { background: #fce4ec; color: #ad1457; padding: 8px 10px; text-align: center; font-size: 0.85em; }
+  .q-table td { padding: 6px 10px; text-align: center; border-bottom: 1px solid #fce4ec; }
+
+  /* ── OPTIONS ── */
+  .options-list { list-style: none; }
+  .options-list li { padding: 11px 16px; margin-bottom: 7px; border-radius: 10px; border: 2px solid #f0e0e6; background: #fffbfc; cursor: pointer; transition: all 0.2s; font-size: 0.95em; }
+  .options-list li:hover { border-color: #f48fb1; background: #fce4ec; }
+  .options-list li.selected { border-color: #ab47bc; background: #f3e5f5; font-weight: 600; }
+  .options-list li.selected::before { content: ""; display: inline-block; width: 10px; height: 10px; background: #ab47bc; border-radius: 50%; margin-right: 10px; }
+
+  /* Review mode styles */
+  .options-list li.r-correct { border-color: #66bb6a; background: #e8f5e9; cursor: default; }
+  .options-list li.r-correct::before { content: "✓ "; color: #2e7d32; font-weight: bold; }
+  .options-list li.r-wrong { border-color: #ef5350; background: #ffebee; text-decoration: line-through; opacity: 0.7; cursor: default; }
+  .options-list li.r-wrong::before { content: "✗ "; color: #c62828; font-weight: bold; }
+  .options-list li.r-right-answer { border-color: #66bb6a; background: #e8f5e9; cursor: default; }
+  .options-list li.r-right-answer::before { content: "→ "; color: #2e7d32; font-weight: bold; }
+  .options-list li.r-neutral { cursor: default; opacity: 0.55; }
+  .options-list li.r-neutral:hover { border-color: #f0e0e6; background: #fffbfc; }
+
+  /* ── EXPLANATION (hidden during quiz) ── */
+  .explanation { display: none; margin-top: 14px; padding: 14px 16px; border-radius: 10px; font-size: 0.9em; line-height: 1.6; }
+  .explanation.show { display: block; }
+  .explanation.exp-correct { background: #e8f5e9; border-left: 4px solid #66bb6a; color: #2e7d32; }
+  .explanation.exp-wrong { background: #fff3e0; border-left: 4px solid #ffa726; color: #e65100; }
+  .explanation strong { color: inherit; }
+  .cat-msg { margin-top: 10px; padding: 8px 14px; background: rgba(255,255,255,0.7); border-radius: 8px; font-style: italic; font-size: 0.9em; }
+
+  /* ── GRAPH CONTAINERS ── */
+  .graph-box { margin: 14px 0; background: #fafafa; border-radius: 10px; padding: 14px; border: 1px solid #f0e0e6; }
+  .graph-box canvas { max-height: 240px; }
+  .svg-graph { width: 100%; max-width: 380px; margin: 8px auto; display: block; }
+
+  /* ── BUTTONS ── */
+  .btn-wrap { text-align: center; margin: 30px 0; }
+  .btn { padding: 14px 40px; font-size: 1.1em; font-weight: 700; border: none; border-radius: 30px; cursor: pointer; transition: all 0.3s; }
+  .btn-submit { background: linear-gradient(135deg, #ec407a, #ab47bc); color: white; box-shadow: 0 4px 15px rgba(236,64,122,0.3); }
+  .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(236,64,122,0.4); }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-retake { background: linear-gradient(135deg, #42a5f5, #ab47bc); color: white; box-shadow: 0 4px 15px rgba(66,165,245,0.3); }
+  .btn-retake:hover { transform: translateY(-2px); }
+  .btn-scroll { background: #f48fb1; color: white; padding: 10px 24px; font-size: 0.9em; border-radius: 20px; border: none; cursor: pointer; margin: 4px; }
+
+  /* ── RESULTS BANNER ── */
+  .results-banner { display: none; text-align: center; padding: 30px 20px; background: linear-gradient(135deg, #fce4ec, #f3e5f5); border-radius: 16px; margin: 20px 0; border: 2px solid #f48fb1; }
+  .results-banner.show { display: block; }
+  .results-banner .big-score { font-size: 3.5em; font-weight: 800; color: #ad1457; }
+  .results-banner .score-label { font-size: 1.1em; color: #6a1b9a; }
+  .results-banner .cat-celebration { font-size: 2em; margin: 12px 0; }
+  .results-banner .grade-msg { font-size: 1.15em; margin-top: 8px; color: #37474f; }
+  .results-nav { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+  .hidden { display: none; }
+  @media (max-width: 600px) { .header h1 { font-size: 1.5em; } .container { padding: 12px; } .q-card { padding: 16px; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Cecelia's Econ Review Quiz</h1>
+  <p class="subtitle">You've got this! Pie Cookie and Niko believe in you.</p>
+  <div class="cat-row">
+    <span title="Pie Cookie">🐱</span>
+    <span title="Niko">🐈</span>
+    <span>📚</span>
+  </div>
+</div>
+
+<div class="progress-wrap" id="progressWrap">
+  <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+  <div class="progress-text" id="progressText">0 of 35 answered</div>
+</div>
+
+<div class="container" id="quizArea"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ── ALL 35 QUESTIONS ──
+const QUESTIONS = [
+{
+  id:1, topic:"Elasticity",
+  text:"Suppose Mary's cross-price elasticity of demand between good X and good Y is 2. If the price of good Y increases by 10%, which of the following statements is true?",
+  opts:["Quantity demanded for good X increases by 20%","Quantity demanded for good X decreases by 10%","Quantity demanded for good X decreases by 20%","Quantity demanded for good X increases by 10%"],
+  answer:0,
+  explain:"Cross-price elasticity = %ΔQd_X / %ΔP_Y. So %ΔQd_X = 2 × 10% = 20% increase. Positive cross-price elasticity means X and Y are substitutes — when Y gets pricier, people switch to X!",
+  catMsg:"Pie Cookie says: Think of it like treats — if one brand gets expensive, you switch to the other! 🐱"
+},
+{
+  id:2, topic:"Elasticity",
+  text:"Which of the following graphs illustrates the changes in the price elasticity of supply over time? (SR = short run, LR = long run)",
+  opts:["A: S_SR steep, S_LR flat (correct relationship)","B: S_LR steep, S_SR flat","C: Both curves same slope","D: S_SR flat, S_LR vertical"],
+  answer:0,
+  explain:"In the short run, supply is LESS elastic (steeper curve) because firms can't easily adjust capacity. In the long run, firms can change all inputs, making supply MORE elastic (flatter curve). So S_SR is steep and S_LR is flat.",
+  catMsg:"Niko knows: It's like trying to get comfortable on the couch — in the short run you're stuck, but give it time and you'll find the perfect spot! 🐈",
+  hasGraph:"supply_elasticity"
+},
+{
+  id:3, topic:"Utility",
+  text:"The following table shows total and marginal utilities for hotdogs. What is John's marginal utility from the 4th hotdog?",
+  table:{headers:["Qty","Total Utility","Marginal Utility"],rows:[["0","0","—"],["1","5","5"],["2","?","2"],["3","?","1"],["4","8","?"],["5","7","−1"]]},
+  opts:["-1","0","8","4"],
+  answer:1,
+  explain:"MU = change in TU. Working through: TU(1)=5, TU(2)=5+2=7, TU(3)=7+1=8. So MU(4) = TU(4)−TU(3) = 8−8 = 0. The 4th hotdog is the satiation point — total utility is maximized and eating one more adds nothing!",
+  catMsg:"Pie Cookie says: Even I stop eating after the perfect amount of treats... okay, that's not true. But John should! 🐱"
+},
+{
+  id:4, topic:"Utility",
+  text:"Which graph correctly shows the relationship between Total Utility (TU) and Marginal Utility (MU)?",
+  opts:["A: MU rises above TU","B: TU = MU (same straight line)","C: TU rises then falls; MU starts positive, crosses zero at TU's peak, goes negative","D: TU always falls; MU always rises"],
+  answer:2,
+  explain:"TU increases at a decreasing rate, peaks where MU = 0, then falls. MU starts high and declines, crossing zero exactly when TU hits its maximum. After that, MU goes negative and TU starts dropping.",
+  catMsg:"Niko demonstrates this daily: The first nap spot is amazing, each new one is slightly less exciting, and eventually there are no good spots left! 🐈",
+  hasGraph:"tu_mu"
+},
+{
+  id:5, topic:"Utility",
+  text:"On a hot summer day, an individual decides to eat three ice-cream sundaes at a price of $2 each. If he is a utility-maximizer, what is the value of the marginal utility of the fourth sundae to him that day?",
+  opts:["less than $2","exactly $2","more than $2","zero"],
+  answer:0,
+  explain:"A utility maximizer keeps buying as long as MU ≥ Price. He bought 3 but NOT 4, meaning: MU of the 3rd sundae ≥ $2, but MU of the 4th sundae < $2. It's still positive (he'd enjoy it a little), but not worth the $2 price.",
+  catMsg:"Pie Cookie says: I would definitely eat the 4th sundae. But I'm a cat and I don't pay for things. 🐱"
+},
+{
+  id:6, topic:"Utility",
+  text:"David has a budget of $30. Coffee is $2/cup, Donuts are $5 each. Which bundle maximizes his utility?",
+  table:{headers:["Qty","TU Coffee","MU Coffee","TU Donuts","MU Donuts"],rows:[["1","12","12","25","25"],["2","22","10","45","20"],["3","30","8","60","15"],["4","36","6","70","10"],["5","40","4","75","5"]]},
+  opts:["2 cups of Coffee and 5 Donuts","4 cups of Coffee and 4 donuts","4 cups of Coffee and 3 donuts","5 cups of Coffee and 4 donuts"],
+  answer:3,
+  explain:"Utility maximization rule: MU/P must be equal across goods. Check 5 Coffee + 4 Donuts: Cost = 5×$2 + 4×$5 = $30 ✓. MU_C(5)/P_C = 4/2 = 2. MU_D(4)/P_D = 10/5 = 2. They're EQUAL! That's the sweet spot.",
+  catMsg:"Niko says: Always get the most bang for your treats... I mean bucks! 🐈"
+},
+{
+  id:7, topic:"Utility",
+  text:"Emily has $20 for Books ($4) and Movies ($2). She maximizes utility by equalizing MU per dollar. If Books rise to $5 while Movies stay at $2, what happens to Emily's purchases?",
+  opts:["Emily will buy more Books and fewer Movies","Emily will buy the same amount of both","Emily will buy fewer Books and more Movies","Emily will buy fewer Movies and keep the same number of Books"],
+  answer:2,
+  explain:"When Books get more expensive, MU_Books/P_Books falls below MU_Movies/P_Movies. Emily shifts spending toward Movies (better value) and away from Books. This is the substitution effect in action!",
+  catMsg:"Pie Cookie says: When the fancy cat food gets expensive, even I switch to the regular stuff. Smart shopping! 🐱"
+},
+{
+  id:8, topic:"Trade",
+  text:"Jane owns a small bookstore. Revenue was $100,000. She paid $60,000 for rent, wages, and operating expenses. If she could have earned $30,000 working elsewhere, what was her economic profit last year?",
+  opts:["$10,0000","$10,000","$60,000","$40,000"],
+  answer:1,
+  explain:"Economic Profit = Revenue − Explicit Costs − Implicit Costs = $100,000 − $60,000 − $30,000 = $10,000. The $30,000 opportunity cost (what she COULD have earned elsewhere) must be subtracted. Accounting profit would be $40,000, but economists count what you give up!",
+  catMsg:"Niko says: Opportunity cost is like choosing between the sunny window and the warm laundry — you always give up one! 🐈"
+},
+{
+  id:9, topic:"Trade",
+  text:"South Korea produces 5 Tablets or 15 Smartphones. The US produces 15 Tablets or 20 Smartphones. Following comparative advantage, which terms of trade are both available and best for the U.S.?",
+  table:{headers:["","Tablets","Smart Phones"],rows:[["South Korea","5","15"],["United States","15","20"]]},
+  opts:["1/4 Tablets per Smart Phone","1/2 Tablets per Smart Phone","1 Smart Phone per Tablet","3/4 Smart Phones per Tablet"],
+  answer:1,
+  explain:"US opp cost: 1 Tablet = 20/15 = 4/3 SP → US has comparative advantage in Tablets. For trade to work, terms must be between each country's opp costs. For SP: between 1/3 and 3/4 Tablets per SP. 1/2 falls in this range and gives the US the best deal!",
+  catMsg:"Pie Cookie says: Trade is like sharing — I bring you a mouse, you give me treats. Everyone wins! 🐱"
+},
+{
+  id:10, topic:"Trade",
+  text:"Ann: 100 legal cases/yr or 20 chairs/yr. Bob: 90 legal cases/yr or 22 chairs/yr. Who has comparative advantage in providing legal services?",
+  opts:["Ann","Bob","None","Both"],
+  answer:0,
+  explain:"Opp cost of 1 legal case: Ann = 20/100 = 0.2 chairs. Bob = 22/90 = 0.244 chairs. Ann gives up FEWER chairs per legal case, so Ann has comparative advantage in legal services. Bob has comparative advantage in making chairs!",
+  catMsg:"Niko says: I have a comparative advantage in napping. Nobody naps better per unit of effort than me! 🐈"
+},
+{
+  id:11, topic:"Trade",
+  text:"Green line = international price (world supply), blue = domestic demand, red = domestic supply. If a free trade policy is implemented, which area represents the gains from trade?",
+  opts:["E","F−E","C+D+E+F","A+B"],
+  answer:0,
+  explain:"When the world price is below the domestic equilibrium price, consumers benefit from cheaper imports. The net gain from trade is area E — the triangle representing additional consumer surplus that wasn't available under autarky (no trade).",
+  catMsg:"Pie Cookie says: Free trade is like when both cats get to share the sunny spot — more happiness for everyone! 🐱"
+},
+{
+  id:12, topic:"Trade",
+  text:"Country originally in free trade at world price $5 (S and D are domestic). What is the transfer from consumer surplus to producer surplus if a quota is imposed that allows NO imports?",
+  opts:["A+B+C+D+E+F","C+D","A+B","G"],
+  answer:1,
+  explain:"When a total import ban (quota = 0) is imposed, the price rises from the world price to the domestic equilibrium. Area C+D transfers from consumers to domestic producers. Areas representing deadweight loss (like B and E area) are lost entirely — nobody gets them.",
+  catMsg:"Niko says: A quota is like when someone blocks the cat door — the inside cats win, but overall there's less happiness! 🐈"
+},
+{
+  id:13, topic:"Trade",
+  text:"The U.S. imposes a tariff on avocados from Mexico. Based on the domestic supply/demand graph showing world price rising from ~$12.50 to ~$15, what happens?",
+  opts:["Both U.S. and Mexican avocado prices increase, imports from Mexico decrease","U.S. avocado price decreases, imports from Mexico increase","Mexican avocado price decreases, imports increase","U.S. avocado price stays the same, no change in imports"],
+  answer:0,
+  explain:"A tariff raises the effective price of imports. ALL avocado prices rise (domestic and imported). At higher prices: domestic supply increases, domestic demand decreases, so imports FALL. Tariffs always reduce imports and raise prices.",
+  catMsg:"Pie Cookie says: Tariffs are like putting a toll on the cat flap — fewer visitors come through and everything costs more! 🐱"
+},
+{
+  id:14, topic:"Elasticity",
+  text:"Concert ticket price increases from $50 to $70, tickets sold drops from 1,000 to 800. Using the midpoint formula, what is the price elasticity of demand?",
+  opts:["-0.66","-0.25","-1.5","-0.5"],
+  answer:0,
+  explain:"Midpoint formula: Ed = [(%ΔQ) / (%ΔP)]. %ΔQ = (800−1000)/((800+1000)/2) = −200/900 = −22.2%. %ΔP = (70−50)/((70+50)/2) = 20/60 = 33.3%. Ed = −22.2/33.3 = −0.66. Since |0.66| < 1, demand is INELASTIC.",
+  catMsg:"Niko says: Midpoint formula uses the AVERAGE of old and new values as the base — that's the trick! Don't forget it! 🐈"
+},
+{
+  id:15, topic:"Elasticity",
+  text:"Mary's income increases by 10% and her demand for books decreases by 5%. Her income elasticity of demand for books is ____. Books are a(n) ____ good and ____ for Mary.",
+  opts:["-0.5, inferior, a necessity","5, normal, a necessity","-2.0, normal, neither a luxury nor a necessity","0, inferior, a luxury"],
+  answer:0,
+  explain:"Income Elasticity = %ΔQd/%ΔIncome = −5%/10% = −0.5. NEGATIVE means it's an INFERIOR good (demand falls when income rises). Since |−0.5| < 1, it's a necessity. Think: cheap ramen — you buy less when you get richer, but it's still a staple.",
+  catMsg:"Pie Cookie says: Negative = inferior good. Positive < 1 = normal necessity. Positive > 1 = luxury. Write that on your hand! 🐱"
+},
+{
+  id:16, topic:"Elasticity",
+  text:"Which demand curve is perfectly inelastic to price? (Graph shows 4 curves: 1=vertical, 2=upward sloping, 3=horizontal, 4=downward sloping)",
+  opts:["2","3","1 (vertical line)","4"],
+  answer:2,
+  explain:"Perfectly INELASTIC = VERTICAL line (quantity doesn't change regardless of price). Think: insulin for diabetics — they need it no matter the price. Perfectly ELASTIC = HORIZONTAL (any price increase = quantity drops to zero).",
+  catMsg:"Niko says: My demand for dinner is perfectly inelastic. I WILL meow at 6pm no matter what. 🐈",
+  hasGraph:"inelastic"
+},
+{
+  id:17, topic:"Trade",
+  text:"Suppose the government imposes a tax on sellers. Which of the following is correct?",
+  opts:["If demand were less elastic, the tax revenue would be smaller","If supply were less elastic, the tax revenue would be larger","If supply were less elastic, the deadweight loss would be larger","If demand were more elastic, the tax revenue would be larger"],
+  answer:1,
+  explain:"Less elastic supply = more vertical curve = the tax causes LESS reduction in quantity traded. So: more units still traded = LARGER tax revenue and SMALLER deadweight loss. Inelastic curves = bigger revenue rectangle, smaller DWL triangle.",
+  catMsg:"Pie Cookie says: Inelastic = people (or cats) won't budge much, so the government collects more tax! 🐱"
+},
+{
+  id:18, topic:"Trade",
+  text:"Using the supply/demand graph with P_world = $50 and a quota (Q between 120 and 150): The quota restricts trade by the same amount as a tariff of:",
+  opts:["$50","$30","$20","$5"],
+  answer:1,
+  explain:"The quota raises the domestic price from $50 (world price) to $80 (where domestic S meets restricted D). The equivalent tariff = new price − world price = $80 − $50 = $30. A $30 tariff would restrict trade by exactly the same amount.",
+  catMsg:"Niko says: Quota price minus world price = the tariff twin! Simple math! 🐈"
+},
+{
+  id:19, topic:"Trade",
+  text:"Using the same quota graph (P_world=$50, quota between Q=120 and Q=150, domestic price rises to $80): The quota rent is equal to:",
+  opts:["$6,400","$900","$6,000","$2,400"],
+  answer:3,
+  explain:"Quota rent = (P_quota − P_world) × quantity of imports under quota = ($80 − $50) × (150−120) = $30 × 80... The quota allows a specific quantity of imports, and importers earn the price difference on each unit. Quota rent = $2,400.",
+  catMsg:"Pie Cookie says: Quota rent is the profit that goes to whoever holds the import licenses — free money! 🐱"
+},
+{
+  id:20, topic:"Elasticity",
+  text:"The price of a laptop increases by 10% and quantity demanded decreases by 4%. What is the price elasticity of demand?",
+  opts:["-4","-2.5","-0.25","-0.4"],
+  answer:3,
+  explain:"PED = %ΔQd / %ΔP = −4% / 10% = −0.4. Since |−0.4| < 1, demand is INELASTIC — quantity demanded doesn't change much when price changes. People still need their laptops!",
+  catMsg:"Niko says: Just divide the percentages! %ΔQ on top, %ΔP on bottom. Easy peasy! 🐈"
+},
+{
+  id:21, topic:"Elasticity",
+  text:"The cross elasticity of demand between goods A and B is 0.5. If the price of B increases, the demand for A ____ because A and B are ____.",
+  opts:["Increases, substitutes","Increases, complements","Decreases, substitutes","Decreases, complements"],
+  answer:0,
+  explain:"Cross-price elasticity is POSITIVE (+0.5) → the goods are SUBSTITUTES. When B gets more expensive, people switch TO A, so demand for A INCREASES. If they were complements (used together), cross-price elasticity would be NEGATIVE.",
+  catMsg:"Pie Cookie says: POSITIVE cross elasticity = SUBSTITUTES (they replace each other). NEGATIVE = COMPLEMENTS (they go together, like me and Niko... sometimes). 🐱"
+},
+{
+  id:22, topic:"Elasticity",
+  text:"Use the total revenue graph (hill-shaped curve peaking around Q=10,000). An increase in quantity demanded from 14,000 to 16,000 implies that the price of product X was:",
+  opts:["increased and the demand is inelastic","reduced and the demand is inelastic","reduced and the demand is elastic","increased and the demand is elastic"],
+  answer:3,
+  explain:"From Q=14k to Q=16k, we're on the RIGHT side of the TR curve (past the peak), where TR is falling. On this portion, demand is ELASTIC (|Ed|>1). When price increases on the elastic portion, quantity drops and TR falls. The correct reading: price was increased and demand is elastic.",
+  catMsg:"Niko says: Remember — RIGHT side of TR hill = elastic! LEFT side = inelastic! Peak = unit elastic! Draw it out! 🐈",
+  hasGraph:"total_revenue"
+},
+{
+  id:23, topic:"Elasticity",
+  text:"The price elasticity of demand measures:",
+  opts:["Both A. and B.","The responsiveness of quantity demanded to changes in price","The slope of the demand curve","How frequently the market price of a good changes"],
+  answer:1,
+  explain:"PED measures how SENSITIVE consumers are to price changes — specifically, the percentage change in quantity demanded for a 1% change in price. It is NOT the same as slope (elasticity varies along a straight-line demand curve).",
+  catMsg:"Pie Cookie says: Elasticity = responsiveness. How much do buyers react when price changes? That's it! 🐱"
+},
+{
+  id:24, topic:"Costs",
+  text:"According to the law of diminishing marginal returns:",
+  opts:["employing additional inputs will diminish total output","output will fall and then rise as additional units of input are employed","the marginal product of an input will eventually decrease as more is used","all inputs become less productive over time"],
+  answer:2,
+  explain:"Diminishing marginal returns means the MARGINAL PRODUCT of an input eventually decreases as you add more of it (holding other inputs constant). Total output still RISES — just at a decreasing rate. It doesn't mean total output falls!",
+  catMsg:"Niko says: First treat = AMAZING. Second treat = great. Third treat = nice. Fourth treat = meh. That's diminishing returns! 🐈"
+},
+{
+  id:25, topic:"Utility",
+  text:"A consumer with a fixed income will maximize utility when each good is purchased in amounts such that the:",
+  opts:["marginal utility of each good is maximized","marginal utility per dollar spent is the same for all goods","total utility is the same for each good","marginal utility per dollar spent is maximized for each good"],
+  answer:1,
+  explain:"The utility maximization rule: MU_A/P_A = MU_B/P_B = ... for ALL goods. You allocate spending so the LAST dollar spent on each good gives you EQUAL satisfaction. This is called the equimarginal principle.",
+  catMsg:"Pie Cookie says: Equal MU per dollar for everything! That's the golden rule of shopping! 🐱"
+},
+{
+  id:26, topic:"Utility",
+  text:"When a person's income increases:",
+  opts:["more bundles of goods and services become affordable","fewer bundles of goods and services become affordable","the bundles that become affordable don't change","the affordable bundles must include more expensive goods and services"],
+  answer:0,
+  explain:"Higher income = budget constraint shifts OUTWARD = more combinations of goods become reachable. You can now afford things you couldn't before. Simple and intuitive!",
+  catMsg:"Niko says: More income = bigger playground. More combos of toys and treats! 🐈"
+},
+{
+  id:27, topic:"Costs",
+  text:"Find (x, y, z, m, n) from the labor/production table:",
+  table:{headers:["Labor Input","Total Product","MP of Labor","AP of Labor"],rows:[["0","0","—","—"],["1","(x)","3","3"],["2","5","(y)","(z)"],["3","6","1","2"],["4","(m)","(n)","1.5"]]},
+  opts:["(3, 2, 2.5, 8, 2)","(3, 2, 2, 6, 0)","(3, 2, 2.5, 6, 0)","(4, 1, 2.5, 8, 6)"],
+  answer:2,
+  explain:"x: TP(1) = 0 + MP(1) = 0+3 = 3. y: MP(2) = TP(2)−TP(1) = 5−3 = 2. z: AP(2) = TP(2)/2 = 5/2 = 2.5. m: TP(4) = AP(4)×4 = 1.5×4 = 6. n: MP(4) = TP(4)−TP(3) = 6−6 = 0. Answer: (3, 2, 2.5, 6, 0).",
+  catMsg:"Pie Cookie says: MP = change in TP. AP = TP divided by labor. Keep those formulas close! 🐱"
+},
+{
+  id:28, topic:"Costs",
+  text:"A newspaper company produces newspapers using workers and paper. Which of the following are fixed costs?",
+  opts:["Workers' wages and paper costs","Workers' wages and the plant rental","The plant rental and printing press costs","Only workers' wages"],
+  answer:2,
+  explain:"Fixed costs don't change with output: Plant rental and printing press costs are fixed (you pay them regardless of how many papers you print). Workers' wages are variable costs — you hire more workers to print more papers.",
+  catMsg:"Niko says: Fixed costs are like the rent on our house — Cecelia pays it whether we break one vase or ten! 🐈"
+},
+{
+  id:29, topic:"Costs",
+  text:"Fill in Blank 1, Blank 2, Blank 3 for this cost table for Coke production:",
+  table:{headers:["Qty","Total Cost","TFC","TVC"],rows:[["0","100","100","Blank 1"],["1","140","100","40"],["2","160","100","60"],["3","Blank 2","100","90"],["4","240","100","Blank 3"],["5","300","100","200"]]},
+  opts:["100 / 100 / 140","0 / 190 / 100","100 / 100 / 100","0 / 190 / 140"],
+  answer:3,
+  explain:"TC = TFC + TVC, always! Blank 1: TVC(0) = TC−TFC = 100−100 = 0 (no output = no variable costs). Blank 2: TC(3) = TFC+TVC = 100+90 = 190. Blank 3: TVC(4) = TC−TFC = 240−100 = 140.",
+  catMsg:"Pie Cookie says: TC = TFC + TVC. That's the whole formula. Write it down three times! 🐱"
+},
+{
+  id:30, topic:"Costs",
+  text:"ATC1–ATC4 shows average total cost for 4 different industry types. Which industry is likely to have a large number of small firms?",
+  opts:["4","3","1","2"],
+  answer:2,
+  explain:"ATC1 has the SMALLEST minimum efficient scale (reaches lowest cost at the smallest quantity). This means even tiny firms can produce at minimum cost, so MANY small firms can compete. Industries with large MES (like ATC4) tend toward monopoly — only big firms survive.",
+  catMsg:"Niko says: Small minimum = lots of small firms. Big minimum = only big cats survive! 🐈",
+  hasGraph:"atc_curves"
+},
+{
+  id:31, topic:"Costs",
+  text:"Production exhibits economies of scale when long run average total cost is ____ and diseconomies of scale when long run average total cost is ____.",
+  opts:["Increasing, decreasing","Decreasing, increasing","Increasing, increasing","Decreasing, decreasing"],
+  answer:1,
+  explain:"Economies of scale = LRATC is DECREASING (getting cheaper per unit as you grow bigger). Diseconomies of scale = LRATC is INCREASING (getting MORE expensive per unit — the firm is too big to manage efficiently).",
+  catMsg:"Pie Cookie says: Economies = costs going DOWN (yay, growing is good!). Diseconomies = costs going UP (too big, too chaotic — like when all the cats try to fit in one box). 🐱"
+},
+{
+  id:32, topic:"Costs",
+  text:"Production table: Input 0→0, 1→5, 2→20, 3→32, 4→42, 5→50, 6→55, 7→58, 8→58, 9→56. With the addition of the second unit of input, the marginal product is ____ and the average product is ____.",
+  opts:["15; 10","15; 20","10; 15","25; 10"],
+  answer:0,
+  explain:"MP(2) = TP(2) − TP(1) = 20 − 5 = 15. AP(2) = TP(2)/2 = 20/2 = 10. Remember: MP = CHANGE in total product. AP = total product DIVIDED by number of inputs.",
+  catMsg:"Niko says: MP = difference between rows. AP = total divided by input number. You've got this, Cecelia! 🐈"
+},
+{
+  id:33, topic:"Costs",
+  text:"Using the MC/ATC/AVC graph: Points A, B, C are on the y-axis, D, E, F are at Q1. If the firm is producing at Q1, the area 0BEQ1 represents the:",
+  opts:["total cost","total fixed cost","total variable cost","average variable cost"],
+  answer:2,
+  explain:"B is at the AVC level at Q1. The rectangle 0BEQ1 has height = AVC and width = Q1. Since TVC = AVC × Q, this area = Total Variable Cost. (Total cost would be the larger rectangle using ATC on the y-axis.)",
+  catMsg:"Pie Cookie says: AVC × Q = TVC. ATC × Q = TC. AFC × Q = TFC. Areas are just price × quantity rectangles! 🐱",
+  hasGraph:"cost_curves"
+},
+{
+  id:34, topic:"Costs",
+  text:"Three plant sizes with these ATC schedules. If only these 3 plants are possible, there are economies of scale in producing up to ____ units of output.",
+  table:{headers:["Output","Plant 1 ATC","Plant 2 ATC","Plant 3 ATC"],rows:[["10","$12","$15","$30"],["20","$10","$12","$22"],["30","$11","$10","$19"],["40","$15","$9","$15"],["50","$22","$11","$13"],["60","$30","$14","$12"],["70","$40","$18","$14"]]},
+  opts:["50","40","20","30"],
+  answer:2,
+  explain:"Find the LRATC by picking the LOWEST ATC across all plants at each output: Q=10→$12, Q=20→$10, Q=30→$10. LRATC falls from $12 to $10 (economies of scale) then stays flat. Economies of scale stop at Q=20 since that's where LRATC stops decreasing.",
+  catMsg:"Niko says: Pick the cheapest plant for each output level — that traces out the long-run curve! Economies = falling part! 🐈"
+},
+{
+  id:35, topic:"Costs",
+  text:"Assume that in the short run a firm is producing 1,000 units of output, has average total costs of $100, and has average variable costs of $75. The firm's total fixed costs are:",
+  opts:["$0.03","$25,000","$25","$40"],
+  answer:1,
+  explain:"AFC = ATC − AVC = $100 − $75 = $25. TFC = AFC × Q = $25 × 1,000 = $25,000. Remember: fixed costs DON'T change with output — they're the same whether you produce 1 unit or 1,000.",
+  catMsg:"Pie Cookie says: ATC minus AVC gives you AFC. Multiply by quantity for TOTAL fixed cost. Simple! 🐱"
+}
+];
+
+// ── STATE ──
+let userAnswers = {};
+let submitted = false;
+
+// ── RENDER QUIZ ──
+function renderQuiz() {
+  const area = document.getElementById('quizArea');
+  let html = '';
+
+  QUESTIONS.forEach((q, idx) => {
+    html += `<div class="q-card" id="qcard-${q.id}">`;
+    html += `<div class="q-num">Question ${q.id} <span class="q-topic">${q.topic}</span></div>`;
+    html += `<p class="q-text">${q.text}</p>`;
+
+    // Table if present
+    if (q.table) {
+      html += '<table class="q-table"><tr>';
+      q.table.headers.forEach(h => html += `<th>${h}</th>`);
+      html += '</tr>';
+      q.table.rows.forEach(row => {
+        html += '<tr>';
+        row.forEach(cell => html += `<td>${cell}</td>`);
+        html += '</tr>';
+      });
+      html += '</table>';
+    }
+
+    // Graph placeholder
+    if (q.hasGraph) {
+      html += `<div class="graph-box" id="graph-${q.id}"></div>`;
+    }
+
+    // Options
+    html += `<ul class="options-list" id="opts-${q.id}">`;
+    q.opts.forEach((opt, oi) => {
+      html += `<li onclick="selectAnswer(${q.id}, ${oi}, this)" id="opt-${q.id}-${oi}">${opt}</li>`;
+    });
+    html += '</ul>';
+
+    // Explanation (hidden until review)
+    html += `<div class="explanation" id="exp-${q.id}"></div>`;
+    html += '</div>';
+  });
+
+  // Submit button
+  html += `<div class="btn-wrap" id="submitWrap">
+    <button class="btn btn-submit" id="submitBtn" onclick="submitQuiz()">
+      🐱 Submit Quiz — Let's See How You Did! 🐈
+    </button>
+    <p style="color:#ad1457; font-size:0.85em; margin-top:8px;" id="submitHint">Answer all 35 questions first!</p>
+  </div>`;
+
+  // Results banner (hidden)
+  html += `<div class="results-banner" id="resultsBanner"></div>`;
+
+  area.innerHTML = html;
+  drawGraphs();
+}
+
+// ── SELECT ANSWER ──
+function selectAnswer(qid, optIdx, el) {
+  if (submitted) return;
+  userAnswers[qid] = optIdx;
+
+  // Update visual
+  const opts = document.querySelectorAll(`#opts-${qid} li`);
+  opts.forEach(li => li.classList.remove('selected'));
+  el.classList.add('selected');
+
+  // Update card border
+  document.getElementById(`qcard-${qid}`).classList.add('answered');
+
+  updateProgress();
+}
+
+// ── PROGRESS ──
+function updateProgress() {
+  const count = Object.keys(userAnswers).length;
+  const pct = (count / 35) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${count} of 35 answered`;
+
+  const hint = document.getElementById('submitHint');
+  if (count === 35) {
+    hint.textContent = "All done! Hit submit whenever you're ready!";
+    hint.style.color = '#2e7d32';
+  } else {
+    hint.textContent = `${35 - count} questions remaining`;
+    hint.style.color = '#ad1457';
+  }
+}
+
+// ── SUBMIT ──
+function submitQuiz() {
+  const unanswered = 35 - Object.keys(userAnswers).length;
+  if (unanswered > 0) {
+    if (!confirm(`You still have ${unanswered} unanswered question(s). Submit anyway? (Unanswered = wrong)`)) return;
+  }
+
+  submitted = true;
+
+  let correct = 0;
+  let wrongIds = [];
+
+  QUESTIONS.forEach(q => {
+    const userAns = userAnswers[q.id];
+    const isCorrect = userAns === q.answer;
+    if (isCorrect) correct++;
+    else wrongIds.push(q.id);
+
+    const card = document.getElementById(`qcard-${q.id}`);
+    card.classList.remove('answered');
+    card.classList.add(isCorrect ? 'review-correct' : 'review-wrong');
+
+    // Style options
+    const opts = document.querySelectorAll(`#opts-${q.id} li`);
+    opts.forEach((li, oi) => {
+      li.onclick = null;
+      li.style.cursor = 'default';
+      if (oi === q.answer && isCorrect) {
+        li.className = 'r-correct';
+      } else if (oi === userAns && !isCorrect) {
+        li.className = 'r-wrong';
+      } else if (oi === q.answer && !isCorrect) {
+        li.className = 'r-right-answer';
+      } else {
+        li.className = 'r-neutral';
+      }
+    });
+
+    // Show explanation
+    const expDiv = document.getElementById(`exp-${q.id}`);
+    expDiv.classList.add('show', isCorrect ? 'exp-correct' : 'exp-wrong');
+    if (isCorrect) {
+      expDiv.innerHTML = `<strong>✓ Correct!</strong> ${q.explain}<div class="cat-msg">${q.catMsg}</div>`;
+    } else {
+      expDiv.innerHTML = `<strong>✗ Not quite!</strong> ${q.explain}<div class="cat-msg">${q.catMsg}</div>`;
+    }
+  });
+
+  // Hide submit button
+  document.getElementById('submitWrap').style.display = 'none';
+
+  // Show results banner
+  const pct = Math.round((correct/35)*100);
+  let grade, celebration;
+  if (pct >= 90) { grade = "Pie Cookie and Niko are SO proud of you! You're crushing it!"; celebration = "🐱🎉🐈✨🌟"; }
+  else if (pct >= 80) { grade = "Great job, Cecelia! Almost perfect — just a few to review!"; celebration = "🐱👏🐈💪"; }
+  else if (pct >= 70) { grade = "Solid work! Review the red ones below and you'll ace the real test!"; celebration = "🐱📖🐈💡"; }
+  else if (pct >= 60) { grade = "Good start! The cats believe in you — focus on the explanations below!"; celebration = "🐱❤️🐈📚"; }
+  else { grade = "Don't worry! Every wrong answer is a learning moment. Pie Cookie and Niko are here to help!"; celebration = "🐱🤗🐈💕"; }
+
+  const banner = document.getElementById('resultsBanner');
+  banner.classList.add('show');
+  banner.innerHTML = `
+    <div class="cat-celebration">${celebration}</div>
+    <div class="big-score">${correct}/35</div>
+    <div class="score-label">${pct}% — ${correct} correct, ${35-correct} to review</div>
+    <div class="grade-msg">${grade}</div>
+    ${wrongIds.length > 0 ? `
+    <div class="results-nav" style="margin-top:16px;">
+      <p style="font-size:0.85em; color:#ad1457; width:100%; margin-bottom:6px;">Jump to missed questions:</p>
+      ${wrongIds.map(id => `<button class="btn-scroll" onclick="document.getElementById('qcard-${id}').scrollIntoView({behavior:'smooth',block:'center'})">Q${id}</button>`).join('')}
+    </div>` : ''}
+    <div style="margin-top:20px;">
+      <button class="btn btn-retake" onclick="location.reload()">🔄 Retake Quiz</button>
+    </div>
+  `;
+  banner.scrollIntoView({ behavior: 'smooth' });
+
+  // Update progress bar
+  document.getElementById('progressFill').style.width = '100%';
+  document.getElementById('progressFill').style.background = pct >= 80 ? 'linear-gradient(90deg, #66bb6a, #43a047)' : 'linear-gradient(90deg, #ffa726, #ef5350)';
+  document.getElementById('progressText').textContent = `Score: ${correct}/35 (${pct}%)`;
+}
+
+// ── DRAW GRAPHS ──
+function drawGraphs() {
+  // Q2 - Supply elasticity
+  const g2 = document.getElementById('graph-2');
+  if (g2) g2.innerHTML = `<svg viewBox="0 0 320 200" style="width:100%;max-width:360px;display:block;margin:auto;" xmlns="http://www.w3.org/2000/svg">
+    <rect width="320" height="200" fill="#fafafa" rx="8"/>
+    <line x1="40" y1="15" x2="40" y2="175" stroke="#999" stroke-width="1.5"/>
+    <line x1="40" y1="175" x2="300" y2="175" stroke="#999" stroke-width="1.5"/>
+    <text x="18" y="100" fill="#666" font-size="13" transform="rotate(-90,18,100)">P</text>
+    <text x="280" y="195" fill="#666" font-size="13">Q</text>
+    <line x1="70" y1="165" x2="180" y2="25" stroke="#e53935" stroke-width="2.5"/>
+    <text x="182" y="22" fill="#e53935" font-size="11" font-weight="bold">S_SR (steep)</text>
+    <line x1="55" y1="140" x2="280" y2="50" stroke="#43a047" stroke-width="2.5"/>
+    <text x="240" y="44" fill="#43a047" font-size="11" font-weight="bold">S_LR (flat)</text>
+  </svg>`;
+
+  // Q4 - TU/MU
+  const g4 = document.getElementById('graph-4');
+  if (g4) g4.innerHTML = `<svg viewBox="0 0 320 220" style="width:100%;max-width:360px;display:block;margin:auto;" xmlns="http://www.w3.org/2000/svg">
+    <rect width="320" height="220" fill="#fafafa" rx="8"/>
+    <line x1="40" y1="15" x2="40" y2="195" stroke="#999" stroke-width="1.5"/>
+    <line x1="40" y1="195" x2="300" y2="195" stroke="#999" stroke-width="1.5"/>
+    <text x="18" y="110" fill="#666" font-size="13" transform="rotate(-90,18,110)">U</text>
+    <text x="280" y="213" fill="#666" font-size="13">Q</text>
+    <path d="M 50 175 Q 100 100, 150 40 Q 180 25, 200 40 Q 230 60, 265 90" stroke="#1565c0" stroke-width="2.5" fill="none"/>
+    <text x="267" y="86" fill="#1565c0" font-size="11" font-weight="bold">TU</text>
+    <path d="M 50 80 Q 100 120, 150 155 Q 180 175, 200 195 Q 220 205, 265 215" stroke="#f57c00" stroke-width="2.5" fill="none"/>
+    <text x="267" y="212" fill="#f57c00" font-size="11" font-weight="bold">MU</text>
+    <line x1="185" y1="18" x2="185" y2="195" stroke="#999" stroke-width="1" stroke-dasharray="4"/>
+    <text x="170" y="212" fill="#999" font-size="9">MU=0</text>
+  </svg>`;
+
+  // Q16 - Inelastic
+  const g16 = document.getElementById('graph-16');
+  if (g16) g16.innerHTML = `<svg viewBox="0 0 300 220" style="width:100%;max-width:340px;display:block;margin:auto;" xmlns="http://www.w3.org/2000/svg">
+    <rect width="300" height="220" fill="#fafafa" rx="8"/>
+    <line x1="40" y1="15" x2="40" y2="195" stroke="#999" stroke-width="1.5"/>
+    <line x1="40" y1="195" x2="280" y2="195" stroke="#999" stroke-width="1.5"/>
+    <text x="18" y="110" fill="#999" font-size="13" transform="rotate(-90,18,110)">P</text>
+    <text x="265" y="213" fill="#999" font-size="13">Q</text>
+    <line x1="120" y1="25" x2="120" y2="185" stroke="#43a047" stroke-width="3"/>
+    <text x="125" y="22" fill="#43a047" font-size="12" font-weight="bold">1 (vertical)</text>
+    <line x1="80" y1="170" x2="250" y2="35" stroke="#e53935" stroke-width="1.5" stroke-dasharray="5"/>
+    <text x="252" y="33" fill="#e53935" font-size="10">2</text>
+    <line x1="50" y1="110" x2="270" y2="110" stroke="#f57c00" stroke-width="1.5" stroke-dasharray="5"/>
+    <text x="272" y="108" fill="#f57c00" font-size="10">3</text>
+    <line x1="60" y1="35" x2="260" y2="175" stroke="#7b1fa2" stroke-width="1.5" stroke-dasharray="5"/>
+    <text x="262" y="180" fill="#7b1fa2" font-size="10">4</text>
+  </svg>`;
+
+  // Q22 - Total Revenue
+  const g22 = document.getElementById('graph-22');
+  if (g22) {
+    g22.innerHTML = '<canvas id="trChart"></canvas>';
+    new Chart(document.getElementById('trChart'), {
+      type:'line',
+      data:{
+        labels:['0','2','4','6','8','10','12','14','16','17'],
+        datasets:[{
+          label:'Total Revenue ($thousands)',
+          data:[0,2,4.2,6.5,8.5,10,9,6,3.5,2],
+          borderColor:'#ad1457', backgroundColor:'rgba(173,20,87,0.08)',
+          fill:true, tension:0.4, pointRadius:4,
+          pointBackgroundColor: ctx => [7,8,9].includes(ctx.dataIndex) ? '#ef5350' : '#ad1457'
+        }]
+      },
+      options:{
+        responsive:true,
+        plugins:{ legend:{labels:{color:'#666'}}, title:{display:true,text:'Total Revenue Curve',color:'#37474f'} },
+        scales:{
+          x:{title:{display:true,text:'Quantity (thousands)',color:'#999'},ticks:{color:'#999'},grid:{color:'#f0e0e6'}},
+          y:{title:{display:true,text:'TR ($thousands)',color:'#999'},ticks:{color:'#999'},grid:{color:'#f0e0e6'}}
+        }
+      }
+    });
+  }
+
+  // Q30 - ATC curves
+  const g30 = document.getElementById('graph-30');
+  if (g30) g30.innerHTML = `<svg viewBox="0 0 340 200" style="width:100%;max-width:380px;display:block;margin:auto;" xmlns="http://www.w3.org/2000/svg">
+    <rect width="340" height="200" fill="#fafafa" rx="8"/>
+    <line x1="40" y1="15" x2="40" y2="175" stroke="#999" stroke-width="1.5"/>
+    <line x1="40" y1="175" x2="320" y2="175" stroke="#999" stroke-width="1.5"/>
+    <text x="18" y="100" fill="#999" font-size="12" transform="rotate(-90,18,100)">Cost</text>
+    <text x="170" y="197" fill="#999" font-size="12" text-anchor="middle">Quantity</text>
+    <path d="M 55 85 Q 75 40, 95 55 Q 115 75, 135 100" stroke="#43a047" stroke-width="2.5" fill="none"/>
+    <text x="80" y="33" fill="#43a047" font-size="11" font-weight="bold">ATC1 (small)</text>
+    <path d="M 115 85 Q 145 40, 175 55 Q 200 70, 220 95" stroke="#1565c0" stroke-width="2" fill="none"/>
+    <text x="150" y="33" fill="#1565c0" font-size="10">ATC2</text>
+    <path d="M 185 80 Q 215 40, 250 55 Q 270 65, 290 85" stroke="#f57c00" stroke-width="2" fill="none"/>
+    <text x="220" y="33" fill="#f57c00" font-size="10">ATC3</text>
+    <path d="M 250 75 Q 280 40, 310 60" stroke="#e53935" stroke-width="2" fill="none"/>
+    <text x="278" y="33" fill="#e53935" font-size="10">ATC4</text>
+  </svg>`;
+
+  // Q33 - Cost curves
+  const g33 = document.getElementById('graph-33');
+  if (g33) g33.innerHTML = `<svg viewBox="0 0 320 240" style="width:100%;max-width:370px;display:block;margin:auto;" xmlns="http://www.w3.org/2000/svg">
+    <rect width="320" height="240" fill="#fafafa" rx="8"/>
+    <line x1="50" y1="15" x2="50" y2="210" stroke="#999" stroke-width="1.5"/>
+    <line x1="50" y1="210" x2="300" y2="210" stroke="#999" stroke-width="1.5"/>
+    <text x="22" y="115" fill="#999" font-size="12" transform="rotate(-90,22,115)">Price</text>
+    <text x="170" y="235" fill="#999" font-size="12" text-anchor="middle">Quantity</text>
+    <path d="M 70 170 Q 100 185, 130 160 Q 155 110, 185 55 Q 205 30, 240 15" stroke="#e53935" stroke-width="2" fill="none"/>
+    <text x="242" y="15" fill="#e53935" font-size="10">MC</text>
+    <path d="M 80 90 Q 120 52, 160 48 Q 200 52, 250 72" stroke="#1565c0" stroke-width="2" fill="none"/>
+    <text x="252" y="70" fill="#1565c0" font-size="10">ATC</text>
+    <path d="M 80 150 Q 120 100, 160 88 Q 200 92, 250 120" stroke="#43a047" stroke-width="2" fill="none"/>
+    <text x="252" y="118" fill="#43a047" font-size="10">AVC</text>
+    <text x="32" y="42" fill="#f57c00" font-size="11">A</text>
+    <line x1="50" y1="45" x2="160" y2="45" stroke="#ddd" stroke-width="0.5" stroke-dasharray="3"/>
+    <text x="32" y="90" fill="#f57c00" font-size="11">B</text>
+    <line x1="50" y1="92" x2="160" y2="92" stroke="#ddd" stroke-width="0.5" stroke-dasharray="3"/>
+    <text x="32" y="155" fill="#f57c00" font-size="11">C</text>
+    <line x1="50" y1="157" x2="160" y2="157" stroke="#ddd" stroke-width="0.5" stroke-dasharray="3"/>
+    <text x="155" y="42" fill="#f57c00" font-size="10">D</text>
+    <text x="155" y="88" fill="#f57c00" font-size="10">E</text>
+    <text x="155" y="155" fill="#f57c00" font-size="10">F</text>
+    <line x1="160" y1="210" x2="160" y2="40" stroke="#ddd" stroke-width="0.5" stroke-dasharray="3"/>
+    <text x="155" y="225" fill="#999" font-size="10">Q1</text>
+    <rect x="50" y="92" width="110" height="118" fill="rgba(173,20,87,0.08)" stroke="none"/>
+    <text x="85" y="155" fill="#ad1457" font-size="10" font-weight="bold">0BEQ1 = TVC</text>
+  </svg>`;
+}
+
+// ── INIT ──
+renderQuiz();
+</script>
+</body>
+</html>
